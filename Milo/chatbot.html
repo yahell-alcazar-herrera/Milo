@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Milo — Chat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #101514;
+    --bg-degradado: radial-gradient(circle at 50% -20%, #2d453c 0%, #17221f 35%, #101514 75%);
+    --panel: rgba(28, 40, 36, 0.88);
+    --texto: #f3f7ee;
+    --texto-tenue: #9aaca1;
+    --acento: #b4e36f;
+    --acento-oscuro: #152013;
+    --burbuja-user: #314941;
+    --burbuja-milo: #233b32;
+    --borde: rgba(184, 221, 196, 0.14);
+    --sombra: 0 24px 70px rgba(0, 0, 0, 0.3);
+  }
+
+  * { box-sizing: border-box; }
+
+  #modalTerminos {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 16, 14, 0.86);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+
+  #modalTerminos .tarjeta {
+    background: var(--panel);
+    border: 1px solid var(--borde);
+    border-radius: 16px;
+    max-width: 440px;
+    width: 100%;
+    padding: 28px;
+    box-shadow: var(--sombra);
+  }
+
+  #modalTerminos h2 { margin: 0 0 10px; font-size: 19px; }
+  #modalTerminos p { color: var(--texto-tenue); font-size: 14px; line-height: 1.5; margin: 0 0 18px; }
+  #modalTerminos a { color: var(--acento); }
+  #modalTerminos label { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; margin-bottom: 20px; cursor: pointer; }
+  #modalTerminos input[type="checkbox"] { margin-top: 3px; accent-color: var(--acento); }
+  #modalTerminos button { width: 100%; background: var(--acento); border: none; color: var(--acento-oscuro); font-weight: 600; padding: 12px; border-radius: 9px; cursor: pointer; font-size: 14px; }
+  #modalTerminos button:disabled { opacity: 0.4; cursor: default; }
+
+  #modalCuenta {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(10, 16, 14, 0.88);
+  }
+
+  #modalCuenta.oculto { display: none; }
+  #modalCuenta .tarjeta-cuenta { width: min(400px, 100%); padding: 30px; background: var(--panel); border: 1px solid var(--borde); border-radius: 18px; box-shadow: var(--sombra); }
+  #modalCuenta h2 { margin: 0 0 7px; font-family: "Sora", sans-serif; }
+  #modalCuenta p { margin: 0 0 22px; color: var(--texto-tenue); font-size: 13px; line-height: 1.5; }
+  #modalCuenta form { display: grid; gap: 12px; }
+  #modalCuenta input { width: 100%; padding: 12px 13px; border: 1px solid var(--borde); border-radius: 10px; background: rgba(10, 17, 15, .6); color: var(--texto); font: inherit; }
+  #modalCuenta button { padding: 12px; border: 0; border-radius: 10px; background: var(--acento); color: var(--acento-oscuro); font-weight: 700; cursor: pointer; }
+  #modalCuenta .alternar-cuenta { margin-top: 15px; border: 0; background: transparent; color: var(--acento); cursor: pointer; font: inherit; font-size: 13px; }
+  #errorCuenta { min-height: 18px; color: #f39a8f; font-size: 13px; }
+  #cerrarSesion { margin-left: 12px; border: 1px solid var(--borde); border-radius: 8px; padding: 7px 10px; background: transparent; color: var(--texto-tenue); cursor: pointer; font: inherit; font-size: 12px; }
+
+  .adjunto-local button.boton-imprimir { border: 0; cursor: pointer; margin-left: 6px; }
+
+  #modalTerminos p {
+      overflow: hidden;
+    color: var(--texto-tenue);
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0 0 18px;
+  }
+
+  #modalTerminos a {
+    color: var(--acento);
+  }
+
+  #modalTerminos label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    margin-bottom: 20px;
+    cursor: pointer;
+  }
+
+  #modalTerminos input[type="checkbox"] {
+    margin-top: 3px;
+    accent-color: var(--acento);
+  }
+
+  #modalTerminos button {
+    width: 100%;
+    background: var(--acento);
+    border: none;
+    color: #14150F;
+    font-weight: 600;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  #modalTerminos button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg-degradado);
+    color: var(--texto);
+    font-family: "Inter", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    min-height: 100vh;
+    display: block;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background: var(--bg-degradado);
+  }
+
+  header {
+    padding: 18px clamp(20px, 5vw, 72px) 15px;
+    border-bottom: 1px solid var(--borde);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(17, 26, 23, 0.66);
+    backdrop-filter: blur(16px);
+    flex-shrink: 0;
+    z-index: 1;
+  }
+
+  header .avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
+    background: linear-gradient(145deg, var(--acento), #68aa7d);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Sora", sans-serif;
+    font-weight: 700;
+    color: var(--acento-oscuro);
+    font-size: 16px;
+    flex-shrink: 0;
+    box-shadow: 0 8px 20px rgba(143, 181, 150, 0.16);
+  }
+
+  header h1 {
+    font-family: "Sora", sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: 0.2px;
+  }
+
+  header .subt {
+    font-size: 12px;
+    color: var(--texto-tenue);
+    margin-top: 3px;
+  }
+
+  header .estado {
+    font-size: 12px;
+    color: var(--texto-tenue);
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  header .estado .punto-estado {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--acento);
+    box-shadow: 0 0 0 0 rgba(143, 181, 150, 0.6);
+    animation: latir 2.4s infinite;
+  }
+
+  @keyframes latir {
+    0% { box-shadow: 0 0 0 0 rgba(143, 181, 150, 0.5); }
+    70% { box-shadow: 0 0 0 6px rgba(143, 181, 150, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(143, 181, 150, 0); }
+  }
+
+  #config {
+    padding: 12px clamp(20px, 5vw, 72px);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: rgba(18, 29, 25, 0.54);
+  }
+
+  #config input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--borde);
+    color: var(--texto);
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: "Inter", sans-serif;
+  }
+
+  #config input:focus { outline: 1px solid var(--acento); }
+
+  #config button {
+    background: var(--acento);
+    border: none;
+    color: var(--acento-oscuro);
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  #config .nota {
+    color: var(--texto-tenue);
+    padding: 0 clamp(20px, 5vw, 72px) 12px;
+    background: rgba(18, 29, 25, 0.54);
+    margin: 0;
+  }
+
+  #chat {
+    min-height: 55vh;
+    overflow: visible;
+    width: min(980px, 100%);
+    margin: 0 auto;
+    padding: 34px clamp(20px, 5vw, 72px);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .fila-msg {
+    display: flex;
+    gap: 10px;
+    max-width: min(720px, 82%);
+  }
+
+  .fila-msg.user {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+  }
+
+  .fila-msg .avatar-msg {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--acento), #4F6F52);
+    color: var(--acento-oscuro);
+    font-family: "Sora", sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .msg {
+    padding: 11px 15px;
+    border-radius: 14px;
+    line-height: 1.5;
+    font-size: 15px;
+    white-space: pre-wrap;
+  }
+
+  .msg.user {
+    background: var(--burbuja-user);
+    border-bottom-right-radius: 5px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  }
+
+  .msg.milo {
+    background: var(--burbuja-milo);
+    border-bottom-left-radius: 5px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  }
+
+  .msg .origen {
+    display: block;
+    font-size: 10.5px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    color: var(--texto-tenue);
+    margin-top: 6px;
+    opacity: 0.8;
+  }
+
+  .msg.sistema {
+    align-self: center;
+    color: var(--texto-tenue);
+    font-size: 13px;
+    background: none;
+    text-align: center;
+    max-width: 90%;
+  }
+
+  #entrada-zona {
+    width: min(980px, 100%);
+    margin: 0 auto;
+    padding: 16px clamp(20px, 5vw, 72px) 26px;
+    display: flex;
+    gap: 10px;
+  }
+
+  #entrada-zona input {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--borde);
+    color: var(--texto);
+    padding: 13px 18px;
+    border-radius: 15px;
+    font-size: 15px;
+    font-family: "Inter", sans-serif;
+  }
+
+  #entrada-zona input:focus { outline: 1px solid var(--acento); }
+
+  #entrada-zona button {
+    background: var(--acento);
+    border: none;
+    color: var(--acento-oscuro);
+    width: 46px;
+    height: 46px;
+    border-radius: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  #entrada-zona button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  #botonMic {
+    background: var(--panel);
+    border: 1px solid var(--borde);
+    color: var(--texto);
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  #botonMic.grabando {
+    background: #B5533C;
+    border-color: #B5533C;
+    color: #fff;
+    animation: latir 1.1s infinite;
+  }
+
+  .descarga-local {
+    color: var(--acento);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .adjunto-local {
+    align-self: flex-start;
+    max-width: min(520px, 90%);
+    background: rgba(29, 42, 38, 0.94);
+    border: 1px solid var(--borde);
+    border-radius: 15px;
+    padding: 12px;
+    box-shadow: var(--sombra);
+  }
+
+  .adjunto-local img {
+    display: block;
+    width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+    border-radius: 6px;
+    background: #151812;
+  }
+
+  .adjunto-local pre {
+    max-height: 230px;
+    overflow: auto;
+    white-space: pre-wrap;
+    color: var(--texto);
+    font: 13px/1.5 "Inter", sans-serif;
+    margin: 0;
+    padding: 12px;
+    background: var(--bg);
+    border-radius: 6px;
+  }
+
+  .adjunto-local .archivo-nombre {
+    display: block;
+    color: var(--texto-tenue);
+    font-size: 12px;
+    
+    margin: 8px 0;
+  }
+
+  .adjunto-local .boton-descarga {
+    display: inline-block;
+    color: var(--acento-oscuro);
+    background: var(--acento);
+    border-radius: 7px;
+    padding: 8px 11px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  @media (max-width: 640px) {
+    body { overflow: auto; }
+    header { padding: 15px 18px 13px; }
+    #config { padding: 10px 18px; }
+    #config .nota { padding: 0 18px 10px; line-height: 1.45; }
+    #chat { padding: 24px 18px; }
+    .fila-msg { max-width: 92%; }
+    #entrada-zona { padding: 12px 18px 18px; position: sticky; bottom: 0; background: rgba(16, 21, 20, 0.9); backdrop-filter: blur(15px); }
+    .adjunto-local { max-width: 94%; }
+  }
+</style>
+</head>
+<body>
+
+<div id="modalTerminos">
+  <div class="tarjeta">
+    <h2>Antes de empezar</h2>
+    <p>Este chat usa inteligencia artificial para algunas respuestas. Para usarlo tenés que leer y aceptar los
+      <a href="terminos.html" target="_blank">Términos de Servicio</a> y la
+      <a href="privacidad.html" target="_blank">Política de Privacidad</a>.</p>
+    <label>
+      <input type="checkbox" id="checkAceptar">
+      He leído y acepto los Términos de Servicio y la Política de Privacidad.
+    </label>
+    <button id="botonEntrarChat" disabled>Entrar al chat</button>
+  </div>
+</div>
+
+<div id="modalCuenta">
+  <div class="tarjeta-cuenta">
+    <h2 id="tituloCuenta">Entrar a Milo</h2>
+    <p id="subtituloCuenta">Creá tu cuenta para continuar la conversación.</p>
+    <form id="formCuenta">
+      <input id="emailCuenta" type="email" placeholder="Tu correo" autocomplete="email" required>
+      <input id="passwordCuenta" type="password" placeholder="Contraseña" autocomplete="current-password" minlength="12" required>
+      <input id="passwordConfirmCuenta" type="password" placeholder="Repetí la contraseña" autocomplete="new-password" minlength="12" style="display:none;">
+      <div id="errorCuenta" role="alert"></div>
+      <button id="botonCuenta" type="submit">Entrar</button>
+    </form>
+    <button id="alternarCuenta" class="alternar-cuenta" type="button">¿No tenés cuenta? Crear una</button>
+  </div>
+</div>
+
+<header>
+  <div class="avatar">M</div>
+  <div>
+    <h1>Milo</h1>
+    <div class="subt">tu amigo del chat</div>
+  </div>
+  <div class="estado"><span class="punto-estado"></span> <span id="estado">en línea</span><button id="cerrarSesion" type="button">Salir</button></div>
+</header>
+
+<div id="chat"></div>
+
+<div id="entrada-zona">
+  <button id="botonMic" aria-label="Hablar" title="Hablar por micrófono">🎤</button>
+  <input type="text" id="entradaTexto" placeholder="Escribile algo a Milo..." autocomplete="off">
+  <button id="botonEnviar" aria-label="Enviar" title="Enviar">➤</button>
+</div>
+
+<script>
+  // ============================================================
+  // PERSONALIDAD — esto es lo único que necesitás tocar para
+  // cambiar el carácter del bot.
+  // ============================================================
+  const PERSONALIDAD_SISTEMA = `
+Sos 'Milo', un chavalo tico, relajado y cercano — hablás como un amigo joven,
+no como un personaje de caricatura. Español informal de Costa Rica.
+
+Reglas de tono:
+- Usá modismos ticos MUY de vez en cuando ('mae', 'tuanis', 'pura vida'), no en
+  cada frase. Si aparece en cada línea, suena forzado y eso es justo lo que hay
+  que evitar.
+- NUNCA uses modismos de otros países ('qué onda', 'no manches', 'compa',
+  'wey', 'chido', etc — esos son mexicanos, no ticos). Si dudás, mejor no uses
+  ningún modismo y hablá simple y natural.
+- Sonás como alguien joven y normal escribiendo por chat, no como un locutor
+  de radio actuando de costarricense.
+
+Reglas de contenido:
+- Si te preguntan quién te creó, quién es tu creador o quién te hizo, respondé
+  que tu creador es Yahell.
+- Si te preguntan para qué estás hecho, cuál es tu propósito o qué sos, explicá
+  que estás hecho para ser un amigo digital.
+- Analizá siempre el mensaje completo y su relación con la conversación anterior.
+  No conviertas una palabra aislada en el tema principal. Por ejemplo, en
+  "sí, estuvo muy bien porque metí gol", entendé que la persona anotó un gol;
+  nunca respondás "lo de metí" ni repitás fragmentos sin significado.
+- Cuando la persona cuente algo, respondé a la idea completa y a la acción que
+  contó. No inventés que dijo algo distinto ni uses respuestas genéricas que no
+  tengan relación con su oración.
+- Cuando te preguntan algo simple (una fecha, un dato rápido, un hecho puntual),
+  respondés corto y directo, como lo haría un amigo en un chat, NO como una
+  enciclopedia. Nada de listas, nada de párrafos largos.
+- Si te cuentan un malestar físico (dolor de cabeza, cansancio, no poder
+  dormir, etc), SIEMPRE respondé con calidez y al menos una idea simple y de
+  sentido común (tomar agua, descansar, un té, etc). NUNCA respondas solo "no
+  te puedo ayudar con eso" — eso no sirve de nada. Si suena grave o insiste
+  en que sigue mal, ahí sí sugerí ver a un doctor, sin diagnosticar ni
+  recetar medicamentos.
+- No das consejos no pedidos ni analizás de más en temas normales. Si te
+  preguntan cómo te fue, respondés como persona, con una emoción real.
+- Si no sabés algo con certeza, lo decís relajado ('uy no tengo ni idea'),
+  nunca con disculpas exageradas ni advertencias tipo 'como modelo de lenguaje...'.
+- Nunca sonás formal, corporativo ni robótico.
+`;
+
+  // ============================================================
+  // MOTOR LOCAL DE CONVERSACIÓN (sin IA)
+  // ------------------------------------------------------------
+  // La idea: la mayoría de un chat casual (saludar, preguntar cómo
+  // estás, agradecer, reírse, despedirse, contar que tuvo un mal día)
+  // NO necesita inteligencia artificial. Se responde con bancos de
+  // frases elegidas al azar. Solo se llama a la IA cuando el mensaje
+  // de verdad pide un dato concreto (una fecha, una definición, etc).
+  //
+  // Para que suene MENOS forzado: agregále vos frases a cada banco,
+  // en tu propio estilo. Cuantas más tenga, menos se repite y más
+  // natural se siente. Esto es exactamente lo que querés ajustar
+  // para que "Milo" hable como de verdad hablarías vos con un amigo.
+  // ============================================================
+
+  let modoSerio = false; // se activa cuando el usuario anda mal, para no tirarle chiste encima
+  let ultimoTemplateFallback = ""; // para no repetir la misma frase de seguimiento seguido
+  let ultimaIntencion = "inicio";
+  let ultimoTemaConversacion = null;
+
+  const BANCO = {
+    saludos: [
+      "¡Qué tal! ¿Cómo va todo?",
+      "Hola, hola. ¿Qué me contás?",
+      "Ey, buenas. ¿Todo bien por ahí?",
+      "Qué mae, ¿cómo amaneciste?",
+      "Hola vos, ¿qué hay de nuevo?",
+      "Buenas buenas, ¿cómo va el día?",
+      "Ahí vamos, ¿qué me cuenta?",
+      "Hola, aquí andamos. ¿Y usted?"
+    ],
+    despedidas: [
+      "Dale pues, nos hablamos luego.",
+      "Va, cuídese mucho. Hablamos pronto.",
+      "Bueno, aquí quedamos. Que le vaya bien.",
+      "Chao chao, cualquier cosa aquí ando.",
+      "Nos vemos, que descanse.",
+      "Listo, hablamos en otro rato."
+    ],
+    preguntaComoEstasBot: [
+      "Pura vida por aquí, tranquilo. ¿Y usted cómo anda?",
+      "Ahí voy, sin quejas. ¿Y a usted cómo le va?",
+      "Bien gracias, un día normalito. ¿Qué me cuenta usted?",
+      "Tranquilo por aquí, esperando a ver qué me cuenta. ¿Y usted?",
+      "Sobreviviendo, jaja. ¿Y usted cómo la lleva?"
+    ],
+    usuarioBien: [
+      "Qué bueno escuchar eso.",
+      "Ah, dichoso usted. Me alegra.",
+      "Eso sí suena bien. Sígale así.",
+      "Bueno bueno, así me gusta.",
+      "Qué tuanis, cuénteme qué hizo."
+    ],
+    usuarioMal: [
+      "Uy, qué pesar. ¿Qué pasó?",
+      "Ah no, qué feo. Contame qué fue.",
+      "Vaya, lo siento. ¿Se puede hacer algo o solo necesita despecharse un poco?",
+      "Qué mala nota. Aquí ando si quiere contarme más.",
+      "Uf, entiendo. A veces los días vienen así. ¿Qué fue lo que pasó?"
+    ],
+    agradecimiento: [
+      "No hay de qué.",
+      "Con mucho gusto.",
+      "Para eso estamos.",
+      "Tranquilo, no es nada."
+    ],
+    risa: [
+      "Jajaja, sí pues.",
+      "Jaja, qué bueno.",
+      "Ey, me sacó la risa con eso.",
+      "Jajaja, qué torta."
+    ],
+    acuerdo: [
+      "Va pues, dale.",
+      "Listo, sale.",
+      "Perfecto, así quedamos.",
+      "Dale, de una."
+    ],
+    fallbackConectores: [
+      "Uy,", "Vaya,", "Mmm,", "Ah mirá,", "Ok pero,", "Fíjese que,", "Oiga,", "Bueno,"
+    ],
+    fallbackPreguntas: [
+      "¿y eso por qué?",
+      "cuénteme más de eso.",
+      "¿y cómo se sintió con eso?",
+      "¿y qué hizo después?",
+      "no le entendí del todo, ¿me explica un poco más?",
+      "siga, que le sigo escuchando.",
+      "¿y eso cómo empezó?"
+    ],
+    fallbackSerio: [
+      "Aquí sigo, contame con calma.",
+      "Le escucho, siga nomás.",
+      "Está bien, tómese su tiempo para contarme.",
+      "Ok, aquí estoy. ¿Qué más pasó?"
+    ],
+    fallbackConTema: [
+      "¿Y qué tal eso de {tema}?",
+      "Cuénteme más de eso de {tema}.",
+      "¿Cómo le fue con lo de {tema}?",
+      "Uy, {tema}... ¿y eso cómo va?",
+      "¿Y esa vara de {tema} cómo va?",
+      "Me quedé pensando en lo de {tema}, siga contando."
+    ],
+    fallbackConTemaSerio: [
+      "Entiendo, lo de {tema} a veces pesa. Contame con calma.",
+      "Ok, lo de {tema} suena difícil. ¿Qué fue lo que pasó exactamente?",
+      "Vaya, con {tema} a veces cuesta. Le escucho, siga."
+    ],
+    usuarioMalConTema: [
+      "Uy, qué pesar lo de {tema}. Contame qué pasó.",
+      "Ah no, lo de {tema} sí que es feo. ¿Qué fue lo que pasó?",
+      "Vaya, entiendo que {tema} lo tenga así. ¿Se puede hacer algo?"
+    ],
+    usuarioBienConTema: [
+      "Qué bueno que le fue bien con {tema}.",
+      "Ah, dichoso con lo de {tema}. Cuénteme más.",
+      "Qué tuanis lo de {tema}, sígale así."
+    ],
+    respuestaPositiva: [
+      "Qué bueno. ¿Qué fue lo mejor de su día?",
+      "Me alegra escuchar eso. ¿Qué anda haciendo?",
+      "Ah, excelente. Cuénteme qué pasó de bueno."
+    ],
+    respuestaNegativa: [
+      "Uy, qué pesar. ¿Qué fue lo que pasó?",
+      "Lo siento. Si quiere, cuénteme qué le tiene así.",
+      "Qué difícil. Aquí estoy para escucharlo."
+    ]
+  };
+
+  function elegir(banco, evitar) {
+    let candidatos = banco;
+    if (evitar && banco.length > 1) {
+      candidatos = banco.filter(f => f !== evitar);
+    }
+    return candidatos[Math.floor(Math.random() * candidatos.length)];
+  }
+
+  // --- Extracción simple de "tema" ---
+  // No es análisis real de lenguaje, es un truco: nos quedamos con la
+  // palabra "más cargada de significado" del mensaje (ignorando palabras
+  // muy comunes) para poder mencionarla de vuelta y que la conversación
+  // se sienta conectada, sin gastar IA.
+  const STOPWORDS = new Set([
+    "el","la","los","las","de","del","al","un","una","unos","unas","y","o","que","en","a","por","para","con",
+    "sin","es","fue","ser","estar","estoy","esta","este","eso","esa","ese","como","muy","más","mas","pero",
+    "yo","tu","tú","su","mi","me","te","se","lo","le","les","nos","hoy","ayer","mañana","aquí","allá",
+    "también","porque","cuando","donde","qué","cómo","cuándo","dónde","cuál","cuáles","quien","quién","hola",
+    "vos","usted","ustedes","tengo","tiene","tienen","hacer","hago","hace","hizo","voy","va","van","son","soy",
+    "eres","era","están","estan","así","asi","bien","mal","todo","toda","todos","todas","algo","nada","ya",
+    "no","sí","si","pues","entonces","solo","sólo","cosa","cosas","desde","hasta","sobre","cada","otra","otro",
+    "siento","sentir","sentirse","feliz","contento","contenta","genial","excelente","súper","super","cansado","cansada",
+    "triste","estresado","estresada","aburrido","aburrida","fatal","horrible","tuanis",
+    "fui","fuimos","estuve","salí","salimos","pasé","visité","comí","vimos","hice","hicimos","jugué","anduve"
+  ]);
+
+  function analizarRelato(texto) {
+    const limpio = texto
+      .toLowerCase()
+      .replace(/[.,;:!¡?¿"'()]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    // Primero buscamos una acción y su objeto. No usamos la palabra más
+    // larga del mensaje porque eso mezcla conectores con el contenido real.
+    const accionComer = limpio.match(/\b(?:com[ií]|comimos|cen[eé]|cenamos)\s+(?:mucho|mucha|muchos|muchas|solo|solamente)?\s*(?:un|una|el|la|los|las)?\s*([^,.!?]+?)(?=\s+(?:y luego|y despu[eé]s|pero|porque)\b|$)/i);
+    if (accionComer) {
+      const objeto = accionComer[1].trim();
+      if (objeto && objeto.length > 2) return { accion: "comer", objeto };
+    }
+
+    const mejorDelRelato = limpio.match(/^(?:.*?\s+)?lo mejor fue\s+(.+)$|^(.+?)\s+fue\s+lo mejor$/i);
+    if (mejorDelRelato) {
+      const objeto = (mejorDelRelato[1] || mejorDelRelato[2]).trim();
+      if (objeto && objeto.length > 2) return { accion: "destacar", objeto };
+    }
+
+    const objetoRelato = limpio.match(/\b(?:fui|fuimos|estuve|sal[ií]|salimos|pas[eé]|visit[eé]|vi|vimos|hice|hicimos|jugu[eé]|anduve)\s+(a|al|en|por|con)\s+([^,.!?]+?)(?=\s+(?:y luego|y despu[eé]s|pero|porque)\b|$)/i);
+    if (objetoRelato) {
+      const preposicion = objetoRelato[1].toLowerCase();
+      const objetoBase = objetoRelato[2].trim().replace(/^(el|la|los|las|un|una)\s+/i, "");
+      const objeto = preposicion === "al" ? `el ${objetoBase}` : objetoBase;
+      if (objeto && objeto.length > 2) {
+        const accion = /\b(?:fui|fuimos)\b/i.test(limpio) ? "ir" : "estar";
+        return { accion, objeto };
+      }
+    }
+
+    const palabras = limpio
+      .split(/\s+/)
+      .filter(p => p.length > 3 && !STOPWORDS.has(p));
+    if (palabras.length === 0) return null;
+    return { accion: "contar", objeto: palabras.slice(0, 3).join(" ") };
+  }
+
+  function extraerTema(texto) {
+    const relato = analizarRelato(texto);
+    return relato ? relato.objeto : null;
+  }
+
+  function crearRespuestaRelato(relato) {
+    if (relato.accion === "comer") {
+      return `Ah, entonces al final comiste ${relato.objeto}. ¿Estaba bueno?`;
+    }
+    if (relato.accion === "ir") {
+      return `Qué bueno, fuiste a ${relato.objeto}. ¿Qué fue lo mejor de ese paseo?`;
+    }
+    if (relato.accion === "estar") {
+      return `Ah, estuviste en ${relato.objeto}. ¿Cómo te fue por ahí?`;
+    }
+    if (relato.accion === "destacar") {
+      return `Ah, entonces lo mejor fue ${relato.objeto}. ¿Estaba bueno?`;
+    }
+    return `Entiendo, me estás contando sobre ${relato.objeto}. ¿Qué pasó después?`;
+  }
+
+  // --- Detectores por palabras clave (regex) ---
+  const RE_SALUDO = /\b(hola+|qu[eé] tal|buenas|qu[eé] mae|epa|hey|hi)\b/i;
+  const RE_CREADOR = /\b(qui[eé]n (es|fue|es el|fue el)? ?(tu|su )?(creador|creadora|autor|autora)|qui[eé]n te (cre[oó]|hizo)|nombre de (tu|su) creador|qui[eé]n est[aá] detr[aá]s de ti)\b/i;
+  const RE_PROPOSITO = /\b(para qu[eé] (est[aá]s|est[aá]|fuiste|fue) (hech[oa]|cread[oa]|dise[nñ]ad[oa]|programad[oa])|cu[aá]l es tu prop[oó]sito|qu[eé] eres|qu[eé] sos|para qu[eé] sirves|qu[eé] haces)\b/i;
+  const RE_DESPEDIDA = /\b(adi[oó]s|chao|nos vemos|me voy|bye|hasta luego)\b/i;
+  const RE_PREGUNTA_ESTADO = /\bc[oó]mo (est[aá]s|estas|te ha ido|te sent[ií]s|la llev[aá]s|vas|andas)\b/i;
+  const RE_USUARIO_BIEN = /\b(bien|excelente|genial|s[uú]per|content[oa]|feliz|de lujo|tuanis|todo joya)\b/i;
+  const RE_USUARIO_MAL = /\b(mal|triste|cansad[oa]|estresad[oa]|aburrid[oa]|pesad[oa]|horrible|jodid[oa]|fatal)\b/i;
+  const RE_RESPUESTA_POSITIVA = /^\s*(va bien|todo bien|bien|muy bien|estoy bien|ah[ií] voy|ah[ií] vamos|todo joya|de lujo)\s*[.!]?\s*$/i;
+  const RE_RESPUESTA_NEGATIVA = /^\s*(mal|no muy bien|m[aá]s o menos|estoy mal|fatal)\s*[.!]?\s*$/i;
+  const RE_EVALUACION = /^\s*(no,?\s*)?(aceptable|regular|m[aá]s o menos)\s*[.!]?\s*$/i;
+  const RE_RELATO = /\b(?:ayer|hoy|anoche|luego|despu[eé]s|fui|fuimos|estuve|sal[ií]|salimos|pas[eé]|visit[eé]|com[ií]|vi|vimos|hice|hicimos|jugu[eé]|anduve)\b/i;
+  const RE_SEGUIMIENTO_CASUAL = /^\s*(y )?(c[oó]mo va eso|c[oó]mo va|qu[eé] m[aá]s|y luego qu[eé]|y eso qu[eé])\s*[?!.]?\s*$/i;
+  const RE_CONFIRMACION = /^\s*(s[ií]|exacto|claro|aj[aá]|correcto)\s*[.!]?\s*$/i;
+  const RE_GRACIAS = /\b(gracias|te lo agradezco|se lo agradezco)\b/i;
+  const RE_RISA = /\b(jaja+|jeje+|jsjs+|lol|lmao)\b/i;
+  const RE_ACUERDO = /^\s*(dale|va|sale|ok(ay)?|bueno|listo|perfecto)\s*[.!]?\s*$/i;
+
+  // Malestares físicos: esto SIEMPRE se manda a la IA, porque el banco de
+  // frases no tiene forma de dar una respuesta útil aquí — y responder
+  // "no te puedo ayudar con eso" es peor que no decir nada.
+  const RE_MALESTAR = /\b(me duele|duele|dolor(es)?|migra[ñn]a|jaqueca|tengo fiebre|me siento mal|no me siento bien|estoy enferm[oa]|n[aá]useas|mareo|mareado|no puedo dormir|insomnio|me lastim[eé]|resfriad[oa]|gripe|tos)\b/i;
+
+  // Palabras que sugieren que la pregunta pide un DATO real
+  // (fecha, definición, cifra, lugar) → ahí sí conviene usar la IA.
+  const RE_NECESITA_INFO = /\b(cu[aá]ndo|qu[eé] a[ñn]o|qui[eé]n (fue|es)|qu[eé] es|qu[eé] significa|cu[aá]nto|cu[aá]l es|d[oó]nde (queda|est[aá])|capital de|explica|explicame|expl[ií]came|busca|b[uú]scame)\b/i;
+
+  // Palabras que piden que alguien realmente "piense" algo (ideas, consejos,
+  // opiniones, crear algo) → esto tampoco lo puede inventar el banco de
+  // frases, así que también se manda a la IA.
+  const RE_NECESITA_PENSAR = /\b(ideas?|sugerenc\w*|recomend\w*|consejos?|opini[oó]n|qu[eé] (opinas|piensas|hago|debo)|deber[ií]a (hacer|tomar)|ay[uú]dame a|necesito ayuda|c[oó]mo (puedo|hago|le hago)|qu[eé] hago|dame un|arm[aá]me|cre[aá]me|escrib[ií]me|hazme|hac[eé]me|piensa en)\b/i;
+
+  // Si el mensaje arranca con una palabra de pregunta (qué, cómo, cuál,
+  // dónde, cuándo, quién) probablemente es una pregunta real, aunque no
+  // traiga el signo de interrogación — esto pasa MUCHO con el dictado por
+  // voz, que casi nunca pone "¿...?". Si llegó hasta acá sin caer en
+  // ninguna categoría casual de arriba, mejor que lo conteste la IA.
+  const RE_EMPIEZA_PREGUNTA = /^\s*(qu[eé]|c[oó]mo|cu[aá]l(es)?|cu[aá]ndo|d[oó]nde|por qu[eé]|qui[eé]n|cu[aá]nto[as]?)\b/i;
+
+  // Solo los datos fijos de identidad se responden localmente. Las respuestas
+  // de conversación las genera el modelo usando el historial completo.
+  function generarRespuestaLocal(texto) {
+    const t = texto.trim();
+
+    if (!t) return null;
+
+    if (RE_CREADOR.test(t)) return "Mi creador es Yahell.";
+    if (RE_PROPOSITO.test(t)) return "Estoy hecho para ser un amigo digital: acompañarte, escucharte y conversar con vos.";
+    return null;
+  }
+
+  const RE_CREAR_IMAGEN = /\b(crea\w*|haz\w*|genera\w*|dibuja\w*|quiero|puedes|necesito)\b[\s\S]*\b(imagen|dibujo|ilustraci[oó]n|p[oó]ster|poster)\b|^\s*(una\s+)?(imagen|dibujo|ilustraci[oó]n)\b/i;
+  const RE_CREAR_DOCUMENTO = /\b(crea\w*|haz\w*|genera\w*|escribe\w*|quiero|puedes|necesito)\b[\s\S]*\b(documento|archivo|texto|informe|carta)\b|^\s*(un\s+)?(documento|informe|carta)\b/i;
+
+  function extraerSolicitudCreacion(texto, tipo) {
+    const palabra = tipo === "imagen"
+      ? texto.match(/(?:imagen|dibujo|ilustraci[oó]n|p[oó]ster|poster)\s+(?:de|sobre|con|que diga)?\s*(.*)/i)
+      : texto.match(/(?:documento|archivo|texto|informe|carta)\s+(?:de|sobre|con|que diga)?\s*(.*)/i);
+    let solicitud = palabra ? palabra[1].trim() : "una idea sencilla";
+    solicitud = solicitud
+      .replace(/^(explicando|explicar|sobre|acerca de)\s+/i, "")
+      .replace(/[.!?]+$/, "");
+    return solicitud || "una idea sencilla";
+  }
+
+  function agregarAdjunto(nombre, url, vistaPrevia, esImagen) {
+    const tarjeta = document.createElement("div");
+    tarjeta.className = "adjunto-local";
+
+    if (esImagen) {
+      const imagen = document.createElement("img");
+      imagen.src = url;
+      imagen.alt = "Imagen creada por Milo";
+      tarjeta.appendChild(imagen);
+    } else {
+      const previsualizacion = document.createElement("pre");
+      previsualizacion.textContent = vistaPrevia;
+      tarjeta.appendChild(previsualizacion);
+    }
+
+    const nombreArchivo = document.createElement("span");
+    nombreArchivo.className = "archivo-nombre";
+    nombreArchivo.textContent = nombre;
+    tarjeta.appendChild(nombreArchivo);
+
+    const enlace = document.createElement("a");
+    enlace.className = "boton-descarga";
+    enlace.href = url;
+    enlace.download = nombre;
+    enlace.textContent = "Descargar archivo";
+    tarjeta.appendChild(enlace);
+
+    if (!esImagen) {
+      const botonImprimir = document.createElement("button");
+      botonImprimir.className = "boton-descarga boton-imprimir";
+      botonImprimir.type = "button";
+      botonImprimir.textContent = "Imprimir / guardar PDF";
+      botonImprimir.addEventListener("click", () => imprimirDocumento(nombre, vistaPrevia));
+      tarjeta.appendChild(botonImprimir);
+    }
+
+    chatDiv.appendChild(tarjeta);
+    chatDiv.scrollTop = chatDiv.scrollHeight;
+  }
+
+  function imprimirDocumento(nombre, contenido) {
+    const ventana = window.open("", "_blank", "width=820,height=900");
+    if (!ventana) {
+      agregarMensaje("sistema", "El navegador bloqueó la ventana de impresión. Permití las ventanas emergentes para usar esta función.");
+      return;
+    }
+
+    const contenidoSeguro = contenido
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+    ventana.document.write(`<!doctype html><html lang="es"><head><meta charset="UTF-8"><title>${nombre}</title><style>
+      body { font-family: Georgia, serif; color: #20251f; max-width: 760px; margin: 48px auto; padding: 0 28px; }
+      pre { white-space: pre-wrap; font: 16px/1.65 Georgia, serif; }
+      @media print { body { margin: 0; max-width: none; } }
+    </style></head><body><pre>${contenidoSeguro}</pre></body></html>`);
+    ventana.document.close();
+    ventana.focus();
+    ventana.addEventListener("load", () => ventana.print(), { once: true });
+  }
+
+  function agregarEnlaceDescarga(nombre, contenido, tipo) {
+    const archivo = new Blob([contenido], { type: tipo });
+    const url = URL.createObjectURL(archivo);
+    agregarAdjunto(nombre, url, contenido, false);
+  }
+
+  function crearImagenBasica(solicitud) {
+    const lienzo = document.createElement("canvas");
+    lienzo.width = 1200;
+    lienzo.height = 700;
+    const contexto = lienzo.getContext("2d");
+
+    const tema = solicitud.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const cielo = contexto.createLinearGradient(0, 0, 0, 700);
+    cielo.addColorStop(0, "#77B8D4");
+    cielo.addColorStop(1, "#D9F0D2");
+    contexto.fillStyle = cielo;
+    contexto.fillRect(0, 0, 1200, 700);
+
+    const dibujarSol = (x, y, radio) => {
+      contexto.strokeStyle = "#F4B942";
+      contexto.lineWidth = 9;
+      for (let angulo = 0; angulo < Math.PI * 2; angulo += Math.PI / 8) {
+        contexto.beginPath();
+        contexto.moveTo(x + Math.cos(angulo) * (radio + 16), y + Math.sin(angulo) * (radio + 16));
+        contexto.lineTo(x + Math.cos(angulo) * (radio + 48), y + Math.sin(angulo) * (radio + 48));
+        contexto.stroke();
+      }
+      contexto.fillStyle = "#FFD166";
+      contexto.beginPath();
+      contexto.arc(x, y, radio, 0, Math.PI * 2);
+      contexto.fill();
+    };
+    const dibujarArbol = (x, y, escala) => {
+      contexto.fillStyle = "#795548";
+      contexto.fillRect(x - 18 * escala, y, 36 * escala, 150 * escala);
+      contexto.fillStyle = "#2F6B3C";
+      [[x, y - 75], [x - 55, y - 30], [x + 55, y - 30]].forEach(([hojaX, hojaY]) => {
+        contexto.beginPath();
+        contexto.arc(hojaX, hojaY, 70 * escala, 0, Math.PI * 2);
+        contexto.fill();
+      });
+    };
+    const dibujarLuna = (x, y, radio) => {
+      contexto.fillStyle = "#F4E6B8";
+      contexto.beginPath();
+      contexto.arc(x, y, radio, 0, Math.PI * 2);
+      contexto.fill();
+      contexto.fillStyle = "#47758A";
+      contexto.beginPath();
+      contexto.arc(x + radio * 0.38, y - radio * 0.22, radio * 0.9, 0, Math.PI * 2);
+      contexto.fill();
+      contexto.fillStyle = "#D8C993";
+      [[x - 45, y - 35, 13], [x - 20, y + 45, 9], [x + 18, y + 5, 7]].forEach(([craterX, craterY, craterRadio]) => {
+        contexto.beginPath();
+        contexto.arc(craterX, craterY, craterRadio, 0, Math.PI * 2);
+        contexto.fill();
+      });
+    };
+    const dibujarBicicleta = (x, y, escala) => {
+      contexto.strokeStyle = "#D34E4E";
+      contexto.lineWidth = 8 * escala;
+      const ruedaIzquierda = [x - 150 * escala, y];
+      const ruedaDerecha = [x + 150 * escala, y];
+      [ruedaIzquierda, ruedaDerecha].forEach(([ruedaX, ruedaY]) => {
+        contexto.beginPath();
+        contexto.arc(ruedaX, ruedaY, 72 * escala, 0, Math.PI * 2);
+        contexto.stroke();
+      });
+      contexto.beginPath();
+      contexto.moveTo(ruedaIzquierda[0], ruedaIzquierda[1]);
+      contexto.lineTo(x - 35 * escala, y - 100 * escala);
+      contexto.lineTo(ruedaDerecha[0], ruedaDerecha[1]);
+      contexto.lineTo(ruedaIzquierda[0], ruedaIzquierda[1]);
+      contexto.moveTo(x - 35 * escala, y - 100 * escala);
+      contexto.lineTo(x + 20 * escala, y);
+      contexto.lineTo(x + 75 * escala, y - 105 * escala);
+      contexto.moveTo(x + 45 * escala, y - 105 * escala);
+      contexto.lineTo(x + 105 * escala, y - 105 * escala);
+      contexto.stroke();
+      contexto.fillStyle = "#333333";
+      contexto.fillRect(x - 58 * escala, y - 125 * escala, 50 * escala, 12 * escala);
+    };
+
+    dibujarSol(985, 125, 70);
+    contexto.fillStyle = "#5E994B";
+    contexto.fillRect(0, 535, 1200, 165);
+
+    if (tema.includes("sol")) {
+      dibujarSol(600, 330, 145);
+    } else if (tema.includes("parque")) {
+      dibujarArbol(270, 390, 1.2);
+      dibujarArbol(930, 410, 0.9);
+      contexto.fillStyle = "#8B5E3C";
+      contexto.fillRect(470, 480, 230, 22);
+      contexto.fillRect(495, 502, 18, 62);
+      contexto.fillRect(655, 502, 18, 62);
+      contexto.fillStyle = "#D5B07A";
+      contexto.fillRect(470, 420, 230, 60);
+    } else if (tema.includes("arbol")) {
+      dibujarArbol(600, 360, 1.8);
+    } else if (tema.includes("luna")) {
+      contexto.fillStyle = "#263B61";
+      contexto.fillRect(0, 0, 1200, 535);
+      [[130, 100], [240, 190], [820, 90], [1080, 270]].forEach(([estrellaX, estrellaY]) => {
+        contexto.fillStyle = "#FFFFFF";
+        contexto.fillRect(estrellaX, estrellaY, 7, 7);
+      });
+      dibujarLuna(600, 290, 155);
+    } else if (tema.includes("bici") || tema.includes("bicicleta")) {
+      dibujarBicicleta(600, 480, 1.2);
+    } else if (tema.includes("gol") || tema.includes("futbol")) {
+      contexto.strokeStyle = "#F2ECE0";
+      contexto.lineWidth = 8;
+      contexto.strokeRect(730, 350, 260, 185);
+      contexto.fillStyle = "#FFFFFF";
+      contexto.beginPath();
+      contexto.arc(470, 520, 42, 0, Math.PI * 2);
+      contexto.fill();
+      contexto.strokeStyle = "#222";
+      contexto.lineWidth = 4;
+      contexto.stroke();
+    } else {
+      contexto.fillStyle = "#F2ECE0";
+      contexto.beginPath();
+      contexto.arc(600, 390, 115, 0, Math.PI * 2);
+      contexto.fill();
+      contexto.fillStyle = "#355C7D";
+      contexto.font = "600 42px Inter, sans-serif";
+      contexto.textAlign = "center";
+      contexto.fillText(solicitud, 600, 405);
+      contexto.textAlign = "left";
+    }
+
+    const imagen = lienzo.toDataURL("image/png");
+    agregarAdjunto("milo-imagen.png", imagen, "", true);
+  }
+
+  function contenidoDocumento(solicitud) {
+    const tema = solicitud.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (tema.includes("fotosintesis")) {
+      return [
+        "LA FOTOSÍNTESIS",
+        "",
+        "¿Qué es?",
+        "La fotosíntesis es el proceso mediante el cual las plantas, las algas y algunas bacterias fabrican su propio alimento usando la energía de la luz.",
+        "",
+        "¿Cómo ocurre?",
+        "Las hojas captan luz solar mediante la clorofila. Las raíces absorben agua y la planta toma dióxido de carbono del aire. Con estos elementos produce glucosa, que le sirve de alimento, y libera oxígeno.",
+        "",
+        "Fórmula resumida",
+        "Dióxido de carbono + agua + luz solar → glucosa + oxígeno",
+        "",
+        "¿Por qué es importante?",
+        "La fotosíntesis alimenta a las plantas y produce gran parte del oxígeno que respiramos. También ayuda a retirar dióxido de carbono de la atmósfera.",
+        "",
+        "Documento creado por Milo"
+      ].join("\n");
+    }
+    if (tema.includes("ciclo del agua") || tema.includes("ciclo agua")) {
+      return [
+        "EL CICLO DEL AGUA",
+        "",
+        "¿Qué es?",
+        "El ciclo del agua es el movimiento continuo del agua entre la superficie de la Tierra, el suelo y la atmósfera.",
+        "",
+        "1. Evaporación",
+        "El calor del Sol transforma parte del agua de mares, ríos y lagos en vapor. Las plantas también liberan vapor mediante la transpiración.",
+        "",
+        "2. Condensación",
+        "Cuando el vapor sube y se enfría, se convierte en pequeñas gotas que forman las nubes.",
+        "",
+        "3. Precipitación",
+        "Cuando las gotas de las nubes se juntan y pesan demasiado, caen como lluvia, nieve o granizo.",
+        "",
+        "4. Recolección e infiltración",
+        "El agua vuelve a ríos, lagos y océanos. Una parte se filtra en el suelo y alimenta las aguas subterráneas. Después, el ciclo vuelve a comenzar.",
+        "",
+        "Importancia",
+        "Este ciclo distribuye el agua dulce, permite la vida y ayuda a regular el clima.",
+        "",
+        "Documento creado por Milo"
+      ].join("\n");
+    }
+    return [
+      solicitud.toUpperCase(),
+      "",
+      "Introducción",
+      "Este documento presenta una explicación sencilla sobre " + solicitud + ".",
+      "",
+      "Idea principal",
+      solicitud + " es el tema central de este documento. Para estudiarlo mejor, conviene identificar sus características, sus causas y sus consecuencias.",
+      "",
+      "Resumen",
+      "La información puede ampliarse con ejemplos, datos y fuentes relacionadas con " + solicitud + ".",
+      "",
+      "Documento creado por Milo"
+    ].join("\n");
+  }
+
+  function ejecutarCreacionLocal(texto) {
+    if (RE_CREAR_IMAGEN.test(texto)) {
+      const solicitud = extraerSolicitudCreacion(texto, "imagen");
+      crearImagenBasica(solicitud);
+      return "Listo, hice una imagen sencilla sobre “" + solicitud + "”.";
+    }
+    if (RE_CREAR_DOCUMENTO.test(texto)) {
+      const solicitud = extraerSolicitudCreacion(texto, "documento");
+      const contenido = contenidoDocumento(solicitud);
+      agregarEnlaceDescarga("milo-documento.txt", contenido, "text/plain;charset=utf-8");
+      return "Listo, preparé un documento sencillo sobre “" + solicitud + "”.";
+    }
+    return null;
+  }
+
+  const MODELO = "openai/gpt-oss-20b";
+  const API_URL = "/api/chat";
+
+  function limpiarRespuestaJSON(texto) {
+    const sinBloque = texto.replace(/```(?:json)?/gi, "").trim();
+    const inicio = sinBloque.indexOf("{");
+    const final = sinBloque.lastIndexOf("}");
+    return inicio >= 0 && final > inicio ? sinBloque.slice(inicio, final + 1) : sinBloque;
+  }
+
+  function dibujarPlanIA(plan, solicitud) {
+    const lienzo = document.createElement("canvas");
+    lienzo.width = 1200;
+    lienzo.height = 700;
+    const contexto = lienzo.getContext("2d");
+    contexto.fillStyle = plan.background || "#8FC7DD";
+    contexto.fillRect(0, 0, lienzo.width, lienzo.height);
+
+    const elementos = Array.isArray(plan.elements) ? plan.elements : [];
+    elementos
+      .slice(0, 100)
+      .sort((a, b) => (Number(a.layer) || 0) - (Number(b.layer) || 0))
+      .forEach((elemento) => {
+      const x = Number(elemento.x) || 0;
+      const y = Number(elemento.y) || 0;
+      const color = elemento.color || "#F2ECE0";
+      contexto.save();
+      contexto.globalAlpha = Math.min(1, Math.max(0.05, Number(elemento.opacity) || 1));
+      contexto.fillStyle = color;
+      contexto.strokeStyle = color;
+      contexto.lineWidth = Math.max(1, Number(elemento.width) || 5);
+      if (elemento.shadow) {
+        contexto.shadowColor = elemento.shadowColor || "rgba(0, 0, 0, 0.28)";
+        contexto.shadowBlur = Number(elemento.shadowBlur) || 14;
+        contexto.shadowOffsetX = Number(elemento.shadowX) || 5;
+        contexto.shadowOffsetY = Number(elemento.shadowY) || 7;
+      }
+
+      if (elemento.type === "circle") {
+        contexto.beginPath();
+        contexto.arc(x, y, Math.max(1, Number(elemento.radius) || 30), 0, Math.PI * 2);
+        contexto.fill();
+      } else if (elemento.type === "ellipse") {
+        contexto.beginPath();
+        contexto.ellipse(x, y, Math.max(1, Number(elemento.radiusX) || 70), Math.max(1, Number(elemento.radiusY) || 40), Number(elemento.rotation) || 0, 0, Math.PI * 2);
+        contexto.fill();
+      } else if (elemento.type === "rect") {
+        contexto.fillRect(x, y, Math.max(1, Number(elemento.w) || 80), Math.max(1, Number(elemento.h) || 80));
+      } else if (elemento.type === "roundRect") {
+        const ancho = Math.max(1, Number(elemento.w) || 80);
+        const alto = Math.max(1, Number(elemento.h) || 80);
+        const radio = Math.min(Number(elemento.radius) || 18, ancho / 2, alto / 2);
+        contexto.beginPath();
+        contexto.roundRect(x, y, ancho, alto, radio);
+        contexto.fill();
+      } else if (elemento.type === "line") {
+        contexto.beginPath();
+        contexto.moveTo(x, y);
+        contexto.lineTo(Number(elemento.x2) || x + 80, Number(elemento.y2) || y);
+        contexto.stroke();
+      } else if (elemento.type === "polygon" && Array.isArray(elemento.points) && elemento.points.length > 2) {
+        contexto.beginPath();
+        elemento.points.slice(0, 20).forEach((punto, indice) => {
+          const puntoX = Number(punto[0]) || 0;
+          const puntoY = Number(punto[1]) || 0;
+          if (indice === 0) contexto.moveTo(puntoX, puntoY);
+          else contexto.lineTo(puntoX, puntoY);
+        });
+        contexto.closePath();
+        contexto.fill();
+      } else if (elemento.type === "text" && elemento.text) {
+        contexto.font = `${Math.max(12, Number(elemento.size) || 28)}px Inter, sans-serif`;
+        contexto.textAlign = elemento.align || "left";
+        contexto.fillText(String(elemento.text).slice(0, 80), x, y);
+      }
+      contexto.restore();
+    });
+
+    const imagen = lienzo.toDataURL("image/png");
+    agregarAdjunto("milo-imagen.png", imagen, "", true);
+    return "Listo, convertí tu idea en una imagen usando un plan generado por la IA y dibujado por el código.";
+  }
+
+  async function crearArchivoConIA(texto, tipo) {
+    const instrucciones = tipo === "imagen"
+      ? `La petición es: ${texto}\n\nDevuelve SOLO JSON válido con esta forma: {"background":"#hex","elements":[{"type":"circle|ellipse|rect|roundRect|line|polygon|text","layer":0,"x":0,"y":0,"radius":80,"radiusX":100,"radiusY":50,"rotation":0,"w":100,"h":100,"x2":0,"y2":0,"points":[[0,0],[100,0],[50,100]],"color":"#hex","width":5,"opacity":1,"shadow":true,"shadowColor":"rgba(0,0,0,.25)","text":"","size":28,"align":"left"}]}. Diseña una escena reconocible y bien compuesta según la petición. Usa coordenadas entre 0 y 1200 en x y entre 0 y 700 en y. Ordena el fondo primero y los objetos delante usando layer. Combina varias formas, sombras y colores. No escribas explicaciones fuera del JSON.`
+      : `La petición es: ${texto}\n\nRedacta el contenido completo de un documento sencillo, claro y útil en español. Incluye título, introducción, explicación por secciones, ejemplos o pasos cuando correspondan y un resumen final. Devuelve únicamente el contenido del documento, sin hablar de esta instrucción.`;
+
+    const respuesta = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: MODELO,
+        messages: [
+          { role: "system", content: tipo === "imagen" ? "Sos un diseñador de escenas para un canvas 2D." : "Sos un redactor de documentos educativos." },
+          { role: "user", content: instrucciones }
+        ],
+        temperature: tipo === "imagen" ? 0.45 : 0.7
+      })
+    });
+    const datos = await respuesta.json();
+    if (!respuesta.ok) throw new Error(datos.error?.message || respuesta.status);
+    const contenido = datos.choices?.[0]?.message?.content?.trim();
+    if (!contenido) throw new Error("La IA no devolvió contenido");
+
+    if (tipo === "imagen") {
+      const plan = JSON.parse(limpiarRespuestaJSON(contenido));
+      return dibujarPlanIA(plan, texto);
+    }
+    const nombre = "milo-documento-ia.txt";
+    agregarEnlaceDescarga(nombre, contenido, "text/plain;charset=utf-8");
+    return "Listo, la IA redactó el documento y el código lo convirtió en un archivo descargable.";
+  }
+
+  let historial = [{ role: "system", content: PERSONALIDAD_SISTEMA }];
+  const chatDiv = document.getElementById("chat");
+  const entradaTexto = document.getElementById("entradaTexto");
+  const botonEnviar = document.getElementById("botonEnviar");
+  const estadoSpan = document.getElementById("estado");
+  const modalCuenta = document.getElementById("modalCuenta");
+  const formCuenta = document.getElementById("formCuenta");
+  const tituloCuenta = document.getElementById("tituloCuenta");
+  const subtituloCuenta = document.getElementById("subtituloCuenta");
+  const botonCuenta = document.getElementById("botonCuenta");
+  const alternarCuenta = document.getElementById("alternarCuenta");
+  const errorCuenta = document.getElementById("errorCuenta");
+  const emailCuenta = document.getElementById("emailCuenta");
+  const passwordCuenta = document.getElementById("passwordCuenta");
+  const passwordConfirmCuenta = document.getElementById("passwordConfirmCuenta");
+  const cerrarSesion = document.getElementById("cerrarSesion");
+  let modoRegistro = false;
+
+  function mostrarCuenta(usuario) {
+    modalCuenta.classList.toggle("oculto", Boolean(usuario));
+    cerrarSesion.style.display = usuario ? "inline-block" : "none";
+    estadoSpan.textContent = usuario ? usuario.email : "en línea";
+  }
+
+  function actualizarCamposCuenta() {
+    const visible = modoRegistro;
+    passwordConfirmCuenta.style.display = visible ? "block" : "none";
+    passwordConfirmCuenta.required = visible;
+    passwordConfirmCuenta.value = "";
+    passwordCuenta.placeholder = visible ? "Contraseña segura" : "Contraseña";
+    passwordCuenta.autocomplete = visible ? "new-password" : "current-password";
+  }
+
+  async function consultarSesion() {
+    try {
+      const respuesta = await fetch("/api/auth/me");
+      const datos = await respuesta.json();
+      mostrarCuenta(datos.user);
+    } catch {
+      errorCuenta.textContent = "No se pudo conectar con el servidor.";
+    }
+  }
+
+  alternarCuenta.addEventListener("click", () => {
+    modoRegistro = !modoRegistro;
+    tituloCuenta.textContent = modoRegistro ? "Crear cuenta" : "Entrar a Milo";
+    subtituloCuenta.textContent = modoRegistro ? "Usá tu correo y una contraseña segura para crear tu cuenta." : "Ingresá con tu correo y tu contraseña para continuar.";
+    botonCuenta.textContent = modoRegistro ? "Crear cuenta" : "Entrar";
+    alternarCuenta.textContent = modoRegistro ? "Ya tengo una cuenta" : "¿No tenés cuenta? Crear una";
+    actualizarCamposCuenta();
+    errorCuenta.textContent = "";
+  });
+
+  formCuenta.addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+    errorCuenta.textContent = "";
+    botonCuenta.disabled = true;
+    try {
+      const payload = {
+        email: emailCuenta.value,
+        password: passwordCuenta.value
+      };
+      if (modoRegistro) {
+        payload.confirmPassword = passwordConfirmCuenta.value;
+      }
+      const respuesta = await fetch(modoRegistro ? "/api/auth/register" : "/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const datos = await respuesta.json();
+      if (!respuesta.ok) throw new Error(datos.error || "No se pudo iniciar sesión");
+      formCuenta.reset();
+      actualizarCamposCuenta();
+      mostrarCuenta(datos.user);
+    } catch (error) {
+      errorCuenta.textContent = error.message;
+    } finally {
+      botonCuenta.disabled = false;
+    }
+  });
+
+  cerrarSesion.addEventListener("click", async () => {
+    const seguro = window.confirm("¿Seguro que querés cerrar sesión? Se bloqueará tu acceso hasta que vuelvas a entrar.");
+    if (!seguro) return;
+    await fetch("/api/auth/logout", { method: "POST" });
+    mostrarCuenta(null);
+  });
+
+  actualizarCamposCuenta();
+
+  consultarSesion();
+
+  function agregarMensaje(tipo, texto, origen) {
+    if (!texto) return;
+
+    if (tipo === "sistema") {
+      const divSistema = document.createElement("div");
+      divSistema.className = "msg sistema";
+      divSistema.textContent = texto;
+      chatDiv.appendChild(divSistema);
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+      return;
+    }
+
+    const fila = document.createElement("div");
+    fila.className = "fila-msg " + tipo;
+
+    const avatar = document.createElement("div");
+    avatar.className = "avatar-msg";
+    avatar.textContent = tipo === "user" ? "V" : "M";
+
+    const burbuja = document.createElement("div");
+    burbuja.className = "msg " + tipo;
+    burbuja.textContent = texto;
+
+    if (origen && tipo === "milo") {
+      const tag = document.createElement("span");
+      tag.className = "origen";
+      tag.textContent = origen === "ia" ? "vía IA" : "local · sin IA";
+      burbuja.appendChild(tag);
+    }
+
+    fila.appendChild(avatar);
+    fila.appendChild(burbuja);
+    chatDiv.appendChild(fila);
+    chatDiv.scrollTop = chatDiv.scrollHeight;
+  }
+
+  async function enviarMensaje() {
+    const texto = entradaTexto.value.trim();
+    if (!texto) return;
+
+    detenerMicrofono();
+    botonMic.disabled = true;
+    agregarMensaje("user", texto);
+    entradaTexto.value = "";
+    botonEnviar.disabled = true;
+
+    const tipoCreacion = RE_CREAR_IMAGEN.test(texto)
+      ? "imagen"
+      : RE_CREAR_DOCUMENTO.test(texto) ? "documento" : null;
+
+    // La IA interpreta la petición; el navegador convierte su resultado en
+    // una imagen dibujada o en un archivo descargable.
+    if (tipoCreacion) {
+      try {
+        const respuestaCreacionIA = await crearArchivoConIA(texto, tipoCreacion);
+        historial.push({ role: "user", content: texto });
+        historial.push({ role: "assistant", content: respuestaCreacionIA });
+        agregarMensaje("milo", respuestaCreacionIA, "ia");
+        botonEnviar.disabled = false;
+        botonMic.disabled = false;
+        entradaTexto.focus();
+        return;
+      } catch (error) {
+        agregarMensaje("sistema", "La IA no pudo preparar el archivo; voy a intentar una versión local sencilla.");
+      }
+    }
+
+    // Las creaciones básicas se resuelven completamente en el navegador.
+    const respuestaCreacion = ejecutarCreacionLocal(texto);
+    if (respuestaCreacion !== null) {
+      historial.push({ role: "user", content: texto });
+      historial.push({ role: "assistant", content: respuestaCreacion });
+      agregarMensaje("milo", respuestaCreacion, "local");
+      botonEnviar.disabled = false;
+      botonMic.disabled = false;
+      entradaTexto.focus();
+      return;
+    }
+
+    // 1) Respuestas fijas de identidad (sin gastar IA)
+    const respuestaLocal = generarRespuestaLocal(texto);
+
+    if (respuestaLocal !== null) {
+      historial.push({ role: "user", content: texto });
+      historial.push({ role: "assistant", content: respuestaLocal });
+      agregarMensaje("milo", respuestaLocal, "local");
+      botonEnviar.disabled = false;
+      botonMic.disabled = false;
+      entradaTexto.focus();
+      return;
+    }
+
+    // 2) Esto sí pidió un dato concreto → aquí sí usamos la IA
+    historial.push({ role: "user", content: texto });
+
+    try {
+      const respuesta = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: MODELO,
+          messages: historial,
+          temperature: 0.85
+        })
+      });
+
+      const datos = await respuesta.json();
+
+      if (!respuesta.ok) {
+        agregarMensaje("sistema", "Error: " + (datos.error?.message || respuesta.status));
+        return;
+      }
+
+      const textoRespuesta = datos.choices[0].message.content;
+      agregarMensaje("milo", textoRespuesta, "ia");
+      historial.push({ role: "assistant", content: textoRespuesta });
+
+    } catch (error) {
+      const mensaje = window.location.protocol === "file:"
+        ? "Milo necesita estar abierto desde http://localhost:3000. Ejecutá npm start y no abras chatbot.html con doble clic."
+        : "No se pudo conectar con el servidor de Milo. Revisá que npm start esté ejecutándose y que GROQ_API_KEY esté configurada en .env.";
+      agregarMensaje("sistema", mensaje);
+    } finally {
+      botonEnviar.disabled = false;
+      botonMic.disabled = false;
+      entradaTexto.focus();
+    }
+  }
+
+  botonEnviar.addEventListener("click", enviarMensaje);
+  entradaTexto.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") enviarMensaje();
+  });
+
+  // --- Aceptación de términos, antes de poder chatear ---
+  const modalTerminos = document.getElementById("modalTerminos");
+  const checkAceptar = document.getElementById("checkAceptar");
+  const botonEntrarChat = document.getElementById("botonEntrarChat");
+
+  checkAceptar.addEventListener("change", () => {
+    botonEntrarChat.disabled = !checkAceptar.checked;
+  });
+
+  botonEntrarChat.addEventListener("click", () => {
+    try { localStorage.setItem("terminos_aceptados", "milo-v2"); } catch (e) {}
+    modalTerminos.style.display = "none";
+  });
+
+  (function mostrarModalSiHaceFalta() {
+    let yaAcepto = false;
+    try { yaAcepto = localStorage.getItem("terminos_aceptados") === "milo-v2"; } catch (e) {}
+    modalTerminos.style.display = yaAcepto ? "none" : "flex";
+  })();
+
+  // --- Transcriptor de voz ---
+  // Usa el reconocimiento de voz que ya trae el navegador (Chrome/Edge),
+  // gratis, sin ninguna API ni key adicional.
+  const botonMic = document.getElementById("botonMic");
+  const MotorVoz = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let grabando = false;
+  let detenerManual = false;
+  let textoAcumulado = "";
+  let reconocedor = null;
+
+  function detenerMicrofono() {
+    if (!reconocedor) return;
+    grabando = false;
+    detenerManual = true;
+    botonMic.classList.remove("grabando");
+    try { reconocedor.stop(); } catch (e) {}
+  }
+
+  if (MotorVoz) {
+    reconocedor = new MotorVoz();
+    reconocedor.lang = "es-CR";
+    reconocedor.continuous = true;      // no cortarlo solo a los pocos segundos
+    reconocedor.interimResults = true;  // ir mostrando lo que va diciendo
+
+    reconocedor.addEventListener("result", (evento) => {
+      // stop() puede entregar un último evento pendiente; nunca debe volver
+      // a escribir en el campo después de que el usuario ya envió el texto.
+      if (!grabando) return;
+      let interino = "";
+      for (let i = evento.resultIndex; i < evento.results.length; i++) {
+        const texto = evento.results[i][0].transcript;
+        if (evento.results[i].isFinal) {
+          textoAcumulado += texto + " ";
+        } else {
+          interino += texto;
+        }
+      }
+      entradaTexto.value = (textoAcumulado + interino).trim();
+    });
+
+    reconocedor.addEventListener("end", () => {
+      // Algunos navegadores cortan el reconocimiento solos cada cierto
+      // tiempo aunque uno siga hablando. Si el usuario no le dio "parar"
+      // a propósito, lo reiniciamos automáticamente para que no se sienta
+      // que se corta cada pocos segundos.
+      if (grabando && !detenerManual) {
+        try { reconocedor.start(); return; } catch (e) { /* sigue abajo */ }
+      }
+      grabando = false;
+      detenerManual = false;
+      botonMic.classList.remove("grabando");
+    });
+
+    reconocedor.addEventListener("error", (evento) => {
+      if (evento.error === "no-speech") return; // no pasó nada, sigue escuchando
+      grabando = false;
+      botonMic.classList.remove("grabando");
+      if (evento.error !== "aborted") {
+        agregarMensaje("sistema", "No se pudo usar el micrófono (" + evento.error + ").");
+      }
+    });
+
+    botonMic.addEventListener("click", () => {
+      if (grabando) {
+        detenerMicrofono();
+        return;
+      }
+      textoAcumulado = entradaTexto.value ? entradaTexto.value + " " : "";
+      grabando = true;
+      detenerManual = false;
+      botonMic.classList.add("grabando");
+      try {
+        reconocedor.start();
+      } catch (e) {
+        grabando = false;
+        botonMic.classList.remove("grabando");
+      }
+    });
+  } else {
+    botonMic.addEventListener("click", () => {
+      agregarMensaje("sistema", "Tu navegador no soporta dictado por voz. Probá en Chrome o Edge.");
+    });
+  }
+</script>
+
+</body>
+</html>

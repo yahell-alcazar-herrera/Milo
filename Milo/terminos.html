@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Términos de Servicio — Milo</title>
+<style>
+  :root {
+    --bg: #1C1B19;
+    --panel: #F7F4EE;
+    --texto: #2A2822;
+    --texto-tenue: #766F60;
+    --acento: #7A9A7E;
+    --borde: #E4DFD2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--texto);
+  }
+  header {
+    padding: 26px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 3px solid var(--acento);
+  }
+  header .punto {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--acento);
+  }
+  header h1 {
+    color: #EDE6DA;
+    font-size: 16px;
+    margin: 0;
+    font-weight: 600;
+  }
+  header a {
+    margin-left: auto;
+    color: var(--acento);
+    font-size: 13px;
+    text-decoration: none;
+  }
+  header a:hover { text-decoration: underline; }
+  .contenedor {
+    max-width: 700px;
+    margin: -30px auto 60px;
+    background: var(--panel);
+    border-radius: 16px;
+    padding: 44px 48px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+  }
+  .contenedor h1 {
+    font-size: 26px;
+    margin: 0 0 6px;
+  }
+  .fecha {
+    color: var(--texto-tenue);
+    font-size: 13px;
+    margin-bottom: 32px;
+  }
+  h2 {
+    font-size: 16px;
+    margin-top: 34px;
+    padding-left: 12px;
+    border-left: 3px solid var(--acento);
+  }
+  p, li { line-height: 1.65; font-size: 15px; }
+  ul { padding-left: 20px; }
+  .placeholder {
+    background: #FCEBB0;
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 13px;
+  }
+  footer {
+    margin-top: 50px;
+    padding-top: 20px;
+    border-top: 1px solid var(--borde);
+    font-size: 13px;
+    color: var(--texto-tenue);
+  }
+  @media (max-width: 600px) {
+    .contenedor { margin: -20px 14px 40px; padding: 30px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="punto"></div>
+  <h1>Milo</h1>
+  <a href="chatbot.html">← Volver al chat</a>
+</header>
+
+<div class="contenedor">
+  <h1>Términos de Servicio</h1>
+  <p class="fecha">Última actualización: 22 de septiembre de 2026</p>
+
+  <p>Al usar <strong>Milo</strong> aceptás lo siguiente.</p>
+
+  <h2>1. Qué es este sitio</h2>
+  <p>Milo es un chatbot conversacional. Algunas respuestas se generan mediante un modelo de inteligencia artificial de un proveedor externo. Las respuestas pueden ser incorrectas o incompletas — no debe tratarse como fuente confiable de información médica, legal, financiera o de emergencia.</p>
+
+  <h2>2. Cómo está construido</h2>
+  <p>La interfaz principal está en <strong>chatbot.html</strong>, usando HTML, CSS y JavaScript. El servidor local está en <strong>server.js</strong> y recibe las peticiones del chat en la ruta <strong>/api/chat</strong>. Cuando se publica en Vercel, esa ruta se ejecuta desde <strong>api/chat.js</strong>. Las cuentas y el inicio de sesión también se gestionan desde <strong>server.js</strong> en el modo local.</p>
+  <p>Estas partes se encuentran aproximadamente en: interfaz entre las líneas 1 y 500; lógica del chat y archivos entre las líneas 500 y 1200; envío al servidor y sesión entre las líneas 1200 y 1450; servidor y autenticación en <strong>server.js</strong>. Las líneas pueden cambiar cuando se actualiza el proyecto, por lo que los nombres de archivo y las rutas son la referencia principal.</p>
+
+  <h2>3. Uso aceptable</h2>
+  <ul>
+    <li>No usar el sitio para actividades ilegales o que violen derechos de terceros.</li>
+    <li>No intentar extraer, robar o abusar de claves de API ajenas o del servicio.</li>
+    <li>No sobrecargar el servicio de forma intencional (mensajes automatizados en masa, por ejemplo).</li>
+  </ul>
+
+  <h2>4. Sin garantías</h2>
+  <p>El servicio se ofrece "tal cual", sin garantía de disponibilidad continua, precisión de las respuestas o ausencia de errores.</p>
+
+  <h2>5. Limitación de responsabilidad</h2>
+  <p><span class="placeholder">[Milo AI]</span> no será responsable por daños directos o indirectos derivados del uso de este sitio, en la máxima medida permitida por la ley aplicable.</p>
+
+  <h2>6. Servicios de terceros</h2>
+  <p>Este sitio utiliza el servicio de IA de Groq para algunas respuestas. La clave del proveedor se guarda en el servidor y no se muestra en el navegador. Usar este sitio implica también aceptar los términos de uso aceptable de dicho proveedor.</p>
+
+  <h2>7. Edad mínima</h2>
+  <p>Debés tener al menos <span class="placeholder">[18]</span> años, o contar con supervisión de un adulto responsable.</p>
+
+  <h2>8. Cambios en el servicio</h2>
+  <p>Podemos modificar, suspender o cerrar el servicio en cualquier momento sin previo aviso.</p>
+
+  <h2>9. Ley aplicable</h2>
+  <p>Estos términos se rigen por las leyes de <span class="placeholder">[Costa Rica]</span>, sin perjuicio de otras normas que puedan aplicar según la ubicación del usuario.</p>
+
+  <h2>10. Contacto</h2>
+  <p>Para consultas: <span class="placeholder">[correomilo7@gmail.com]</span>.</p>
+
+  <footer>
+    Contacto: <span class="placeholder">[correomilo7@gmail.com]</span> — <span class="placeholder">[Milo AI]</span>
+  </footer>
+</div>
+
+</body>
+</html>

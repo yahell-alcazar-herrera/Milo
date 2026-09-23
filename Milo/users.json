@@ -1,0 +1,14 @@
+[
+  {
+    "id": "0f0a62d0-0842-4e5e-a8b9-eda379170c2c",
+    "email": "alcazaryahell@gmail.com",
+    "password": "3e22c28459ceb79f43179e16aebbdc44:cae79e2147a648e6a514dbc75b63cc8737181a32c7340dd8992dd654396273bbaa0e80b5197f2d8bf87e8700ca7f9d5098ce359e296d065ae066b11295092957",
+    "createdAt": "2026-09-23T03:12:12.130Z"
+  },
+  {
+    "id": "6d920623-2020-4901-970b-ef6a00dc23da",
+    "email": "demo.segura@example.com",
+    "password": "26cd087176a649fbce212de5dbbf80ae:10fbf8eb199fee0c5635135118eecb3a8dd33f91e853490fbfb08781199ddae84a36b33f1153ef315149636ae54d15e3f631ae54c050f74a4c076359393d530b",
+    "createdAt": "2026-09-23T03:31:09.673Z"
+  }
+]
