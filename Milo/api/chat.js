@@ -35,15 +35,20 @@ export default async function handler(request, response) {
         model: body.model || "openai/gpt-oss-20b",
         messages: mensajesLimpios,
         temperature: Math.min(1, Math.max(0, Number(body.temperature) || 0.75)),
-        ...(Number.isFinite(Number(body.max_tokens)) && Number(body.max_tokens) > 0
-          ? { max_tokens: Math.min(4000, Math.floor(Number(body.max_tokens))) }
-          : {})
+        ...(() => {
+          const maxTokens = Number(body.max_completion_tokens ?? body.max_tokens);
+          return Number.isFinite(maxTokens) && maxTokens > 0
+            ? { max_completion_tokens: Math.min(4000, Math.floor(maxTokens)) }
+            : {};
+        })()
       })
     });
 
     const data = await groqResponse.json();
+    if (!groqResponse.ok) console.error("Groq respondió HTTP " + groqResponse.status + ":", String(data.error?.message || data.error || "sin detalle").slice(0, 240));
     return response.status(groqResponse.status).json(data);
   } catch (error) {
+    console.error("Falló la llamada a Groq:", String(error.message || error).slice(0, 240));
     return response.status(502).json({ error: "No se pudo conectar con el proveedor de IA" });
   }
 }
