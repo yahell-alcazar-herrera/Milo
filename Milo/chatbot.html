@@ -1143,7 +1143,7 @@ Reglas de contenido:
     return "Listo. Preparé la ilustración. Si querés cambiar algo, decime qué le agrego o qué ajusto.";
   }
 
-  async function pedirRespuestaIA(mensajes, temperatura, maxTokens) {
+  async function pedirRespuestaIA(mensajes, temperatura, maxTokens, opciones = {}) {
     const respuesta = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1161,8 +1161,19 @@ Reglas de contenido:
       const detalle = typeof datos.error === "string" ? datos.error : datos.error?.message || datos.message;
       throw new Error(String(detalle || "Error HTTP " + respuesta.status).slice(0, 240));
     }
-    const contenido = datos.choices?.[0]?.message?.content?.trim();
-    if (!contenido) throw new Error("La IA respondió sin contenido");
+    const choice = datos.choices?.[0];
+    const message = choice?.message;
+    const contenido = typeof message?.content === "string"
+      ? message.content.trim()
+      : Array.isArray(message?.content)
+        ? message.content.map(parte => typeof parte === "string" ? parte : parte?.text || "").join("\n").trim()
+        : "";
+    if (!contenido) {
+      if (message?.refusal) throw new Error("El proveedor rechazó la solicitud: " + String(message.refusal).slice(0, 180));
+      if (choice?.finish_reason === "length") throw new Error("Groq agotó el límite de salida antes de terminar (finish_reason: length). Probá una petición más breve.");
+      if (message?.tool_calls?.length) throw new Error("Groq devolvió una llamada a herramienta en vez del contenido de la ilustración.");
+      throw new Error("Groq devolvió contenido vacío (finish_reason: " + String(choice?.finish_reason || "desconocido") + "). Intentá otra vez en unos segundos.");
+    }
     return contenido;
   }
 
@@ -1178,7 +1189,7 @@ Reglas de contenido:
       ? [{ role: "system", content: sistemaImagen }, ...mensajesContexto, { role: "user", content: contextoEdicion }]
       : [{ role: "system", content: "Sos un redactor de documentos educativos." }, { role: "user", content: instruccionesDocumento }];
 
-    let contenido = await pedirRespuestaIA(mensajes, tipo === "imagen" ? 0.35 : 0.7, tipo === "imagen" ? 3800 : 2200);
+    let contenido = await pedirRespuestaIA(mensajes, tipo === "imagen" ? 0.35 : 0.7, tipo === "imagen" ? 3800 : 2200, { ilustracion: tipo === "imagen" });
     if (tipo === "imagen") {
       try {
         const visual = dibujarPlanIA(contenido, texto);
@@ -1189,7 +1200,7 @@ Reglas de contenido:
           { role: "system", content: sistemaImagen + " La respuesta anterior no era XML válido. Reescríbela desde cero como un solo SVG XML válido. Asegúrate de cerrar todas las etiquetas y no agregues texto fuera del SVG." },
           { role: "user", content: contextoEdicion + "\n\nSVG que debes reparar:\n" + contenido.slice(0, 9000) }
         ];
-        contenido = await pedirRespuestaIA(reparar, 0.2, 3800);
+        contenido = await pedirRespuestaIA(reparar, 0.2, 3800, { ilustracion: true });
         const visual = dibujarPlanIA(contenido, texto);
         ultimaSolicitudImagen = esEdicion ? ultimaSolicitudImagen + "\nEdición: " + texto : texto;
         return visual;

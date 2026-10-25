@@ -121,6 +121,8 @@ async function atenderChat(request, response) {
         model: body.model || "openai/gpt-oss-20b",
         messages: mensajesLimpios,
         temperature: Math.min(1, Math.max(0, Number(body.temperature) || 0.75)),
+        ...(body.reasoning_effort === "low" ? { reasoning_effort: "low" } : {}),
+        ...(body.include_reasoning === false ? { include_reasoning: false } : {}),
         ...(() => {
           const maxTokens = Number(body.max_completion_tokens ?? body.max_tokens);
           return Number.isFinite(maxTokens) && maxTokens > 0
