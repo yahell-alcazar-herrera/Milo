@@ -547,6 +547,7 @@
     #entrada-zona { padding:10px 14px max(17px,env(safe-area-inset-bottom)); }
     #entrada-zona input { min-width:0; }
   }
+  #milo-toolbar { position:sticky; top:70px; z-index:2; width:min(960px,100%); margin:0 auto; padding:10px clamp(20px,5vw,44px); display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:rgba(247,248,250,.94); backdrop-filter:blur(14px); }
 </style>
 </head>
 <body>
@@ -592,6 +593,20 @@
   <div class="estado"><span class="punto-estado"></span> <span id="estado">en línea</span><button id="cerrarSesion" type="button">Salir</button></div>
 </header>
 
+<div id="milo-toolbar" aria-label="Herramientas de chat">
+  <button id="botonNuevoChat" type="button">＋ Nuevo chat</button>
+  <input id="buscadorChats" type="search" placeholder="Buscar en tus chats" aria-label="Buscar conversaciones">
+  <select id="listaChats" aria-label="Conversaciones guardadas"></select>
+  <button id="botonRenombrarChat" type="button">Renombrar</button>
+  <button id="botonBorrarChat" type="button">Borrar</button>
+  <button id="botonExportarChat" type="button">Exportar</button>
+  <label class="selector-estilo">Estilo
+    <select id="estiloImagen" aria-label="Estilo de ilustración">
+      <option value="editorial">Editorial</option><option value="acuarela">Acuarela</option><option value="cinematografico">Cinematográfico</option><option value="geometrico">Geométrico</option>
+    </select>
+  </label>
+  <button id="botonTema" type="button" aria-label="Cambiar tema">Tema oscuro</button>
+</div>
 <div id="chat"></div>
 
 <div id="entrada-zona">
@@ -953,7 +968,7 @@ Reglas de contenido:
     return solicitud || "una idea sencilla";
   }
 
-  function agregarAdjunto(nombre, url, vistaPrevia, esImagen) {
+  function agregarAdjunto(nombre, url, vistaPrevia, esImagen, restaurando = false) {
     const tarjeta = document.createElement("div");
     tarjeta.className = "adjunto-local";
 
@@ -979,6 +994,11 @@ Reglas de contenido:
     enlace.download = nombre;
     enlace.textContent = "Descargar archivo";
     tarjeta.appendChild(enlace);
+    if (esImagen) {
+      const botonPNG=document.createElement("button"); botonPNG.type="button"; botonPNG.className="boton-png"; botonPNG.textContent="Descargar PNG";
+      botonPNG.addEventListener("click",()=>descargarPNG(url,nombre.replace(/\.svg$/i,".png")));
+      tarjeta.appendChild(botonPNG);
+    }
 
     if (!esImagen) {
       const botonImprimir = document.createElement("button");
@@ -1136,9 +1156,16 @@ Reglas de contenido:
     return new XMLSerializer().serializeToString(raiz);
   }
 
+  function descargarPNG(svgURL, nombre) {
+    const imagen=new Image();
+    imagen.onload=()=>{const canvas=document.createElement("canvas");canvas.width=1600;canvas.height=1600;const ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,1600,1600);ctx.drawImage(imagen,0,0,1600,1600);canvas.toBlob(blob=>{if(!blob){agregarMensaje("sistema","No pude convertir la ilustración a PNG.");return;}const enlace=document.createElement("a");enlace.href=URL.createObjectURL(blob);enlace.download=nombre;enlace.click();setTimeout(()=>URL.revokeObjectURL(enlace.href),1000);},"image/png");};
+    imagen.onerror=()=>agregarMensaje("sistema","No pude convertir esta ilustración a PNG."); imagen.src=svgURL;
+  }
   function dibujarPlanIA(svgTexto, solicitud) {
     const svgSeguro = limpiarSVG(svgTexto);
     ultimaImagenSvg = svgSeguro;
+    const chat = obtenerChatActual();
+    if (chat && !restaurandoChat) { chat.images.push({ name:"milo-ilustracion.svg", svg:svgSeguro, afterMessageIndex:chat.messages.length }); chat.updatedAt=Date.now(); guardarChats(); }
     const imagenURL = URL.createObjectURL(new Blob([svgSeguro], { type: "image/svg+xml;charset=utf-8" }));
     agregarAdjunto("milo-ilustracion.svg", imagenURL, "", true);
     return "Listo. Preparé la ilustración. Si querés cambiar algo, decime qué le agrego o qué ajusto.";
@@ -1152,7 +1179,8 @@ Reglas de contenido:
         model: MODELO,
         messages: mensajes,
         temperature: temperatura,
-        max_completion_tokens: Math.min(4000, maxTokens)
+        max_completion_tokens: Math.min(4000, maxTokens),
+        ...(opciones.ilustracion ? { reasoning_effort: "low", include_reasoning: false } : {})
       })
     });
     let datos;
@@ -1183,8 +1211,8 @@ Reglas de contenido:
     const contextoEdicion = esEdicion
       ? "Edita el SVG previo conservando sujeto, encuadre y estilo. Aplica esta instrucción: " + texto + "\n\nSVG actual:\n" + ultimaImagenSvg
       : texto;
-    const mensajesContexto = historial.filter(mensaje => mensaje.role !== "system").slice(-8);
-    const sistemaImagen = "Diseña una ilustración vectorial editorial, pulida y clara: composición focal, espacio negativo, formas orgánicas limpias, paleta armoniosa de 4 a 6 colores y profundidad sutil con degradados discretos. Evita saturación, clipart, emojis, caricaturas genéricas, texto decorativo y acumulación de formas. Si piden una foto, interpreta la escena como ilustración refinada y no prometas fotorrealismo. Devuelve únicamente un SVG completo, válido como XML, con viewBox 0 0 1024 1024, fondo y composición terminada. No uses entidades HTML como &nbsp;: escapa los ampersands como &amp;. Usa solo etiquetas svg, defs, linearGradient, radialGradient, stop, g, path, rect, circle, ellipse, line, polyline, polygon, text y tspan. Sin scripts, CSS, enlaces, filtros ni imágenes remotas. No uses más de 45 elementos visibles.";
+    const mensajesContexto = [];
+    const sistemaImagen = "Create a polished, richly art-directed SVG illustration with a clear focal subject, deliberate visual hierarchy, generous negative space, precise silhouettes, layered foreground/midground/background, subtle atmospheric depth, refined linework, and a cohesive restrained palette. Fully interpret the requested subject and its distinctive details; make it feel like a finished editorial artwork rather than a symbol, emoji, sticker, or pile of shapes. The main subject should occupy about 60% of the canvas unless the scene calls for a wider composition. Use carefully chosen gradients, small secondary details, and lighting to add depth without clutter. Keep a clean 1024 by 1024 viewBox, a simple intentional background, and consistent style. Selected style: " + ({ editorial: "contemporary editorial illustration, elegant organic forms, soft paper-like color", acuarela: "controlled watercolor washes, delicate edges and visible paper texture suggested with vectors", cinematografico: "cinematic art direction, dramatic but soft lighting, layered atmosphere and confident color grading", geometrico: "modern geometric illustration, crafted shapes, subtle overlaps and precise rhythm" }[estiloImagen.value] || "contemporary editorial illustration") + ". Return only one complete valid SVG XML document. Use svg, defs, linearGradient, radialGradient, stop, g, path, rect, circle, ellipse, line, polyline, polygon, text and tspan only. No scripts, CSS, links, filters, remote images, HTML entities, or decorative text. Escape ampersands as &amp;. Use around 45 to 80 intentional visible forms, with varied silhouettes and detail, and close every tag.";
     const instruccionesDocumento = "La petición es: " + texto + "\n\nRedacta el contenido completo de un documento sencillo, claro y útil en español. Incluye título, introducción, explicación por secciones, ejemplos o pasos cuando correspondan y un resumen final. Devuelve únicamente el contenido del documento, sin hablar de esta instrucción.";
     const mensajes = tipo === "imagen"
       ? [{ role: "system", content: sistemaImagen }, ...mensajesContexto, { role: "user", content: contextoEdicion }]
@@ -1213,6 +1241,145 @@ Reglas de contenido:
   }
 
   let historial = [{ role: "system", content: PERSONALIDAD_SISTEMA }];
+  let chatsGuardados = [];
+  let chatActivoId = null;
+  let restaurandoChat = false;
+  let falloAlGuardarAvisado = false;
+  const listaChats = document.getElementById("listaChats");
+  const buscadorChats = document.getElementById("buscadorChats");
+  const estiloImagen = document.getElementById("estiloImagen");
+  const claveUsuario = () => (usuarioEnSesion?.username || "visitante").toLowerCase();
+  const claveChats = () => "milo_chats_v1_" + claveUsuario();
+  function nuevoIdChat() { return window.crypto?.randomUUID?.() || "chat-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8); }
+  function obtenerChatActual() { return chatsGuardados.find(chat => chat.id === chatActivoId); }
+  function guardarChats() {
+    if (!usuarioEnSesion || restaurandoChat) return;
+    try { localStorage.setItem(claveChats(), JSON.stringify(chatsGuardados)); falloAlGuardarAvisado = false; }
+    catch (error) {
+      if (!falloAlGuardarAvisado) { falloAlGuardarAvisado = true; agregarMensaje("sistema", "El almacenamiento local está lleno; exportá o borrá chats para guardar más."); }
+    }
+  }
+  function pintarListaChats() {
+    if (!listaChats) return;
+    const query = (buscadorChats?.value || "").trim().toLocaleLowerCase();
+    const visibles = chatsGuardados
+      .filter(chat => !query || chat.title.toLocaleLowerCase().includes(query) || chat.messages.some(m => m.content.toLocaleLowerCase().includes(query)))
+      .sort((a,b) => b.updatedAt - a.updatedAt);
+    listaChats.replaceChildren();
+    for (const chat of visibles) {
+      const opcion = document.createElement("option");
+      opcion.value = chat.id;
+      opcion.textContent = chat.title || "Nuevo chat";
+      listaChats.appendChild(opcion);
+    }
+    listaChats.value = chatActivoId || "";
+    const deshabilitar = chatsGuardados.length === 0;
+    document.getElementById("botonRenombrarChat").disabled = deshabilitar;
+    document.getElementById("botonBorrarChat").disabled = deshabilitar;
+    document.getElementById("botonExportarChat").disabled = deshabilitar;
+  }
+  function cargarChatsUsuario() {
+    try {
+      const datos = JSON.parse(localStorage.getItem(claveChats()) || "[]");
+      chatsGuardados = Array.isArray(datos) ? datos.filter(c => c && c.id && Array.isArray(c.messages)).map(c => ({ id:c.id, title:c.title || "Nuevo chat", updatedAt:Number(c.updatedAt)||Date.now(), messages:c.messages, images:Array.isArray(c.images)?c.images:[] })) : [];
+    } catch { chatsGuardados = []; }
+    const guardado = localStorage.getItem(claveChats() + "_active");
+    chatActivoId = chatsGuardados.some(c => c.id === guardado) ? guardado : chatsGuardados.sort((a,b)=>b.updatedAt-a.updatedAt)[0]?.id || null;
+    if (!chatActivoId) crearChatNuevo();
+    else abrirChat(chatActivoId);
+    pintarListaChats();
+  }
+  function crearChatNuevo() {
+    const chat = { id:nuevoIdChat(), title:"Nuevo chat", updatedAt:Date.now(), messages:[], images:[] };
+    chatsGuardados.push(chat);
+    chatActivoId = chat.id;
+    historial = [{ role:"system", content:PERSONALIDAD_SISTEMA }];
+    ultimaImagenSvg = "";
+    ultimaSolicitudImagen = "";
+    if (chatDiv) chatDiv.replaceChildren();
+    try { localStorage.setItem(claveChats() + "_active", chatActivoId); } catch {}
+    guardarChats();
+    pintarListaChats();
+  }
+  function abrirChat(id) {
+    const chat = chatsGuardados.find(c => c.id === id);
+    if (!chat) return;
+    restaurandoChat = true;
+    chatActivoId = id;
+    historial = [{ role:"system", content:PERSONALIDAD_SISTEMA }, ...chat.messages.map(m => ({role:m.role, content:m.content}))];
+    chatDiv.replaceChildren();
+    ultimaImagenSvg = chat.images.at(-1)?.svg || "";
+    ultimaSolicitudImagen = chat.messages.filter(m=>m.role==="user").at(-1)?.content || "";
+    chat.messages.forEach((m,i) => {
+      agregarMensaje(m.role === "user" ? "user" : "milo", m.content, m.role === "assistant" ? (m.origin || "ia") : null, true);
+      chat.images.filter(im => im.afterMessageIndex === i+1).forEach(im => {
+        const url = URL.createObjectURL(new Blob([im.svg], {type:"image/svg+xml;charset=utf-8"}));
+        agregarAdjunto(im.name || "milo-ilustracion.svg", url, "", true, true);
+      });
+    });
+    try { localStorage.setItem(claveChats() + "_active", id); } catch {}
+    restaurandoChat = false;
+    pintarListaChats();
+    chatDiv.scrollTop = chatDiv.scrollHeight;
+  }
+  function registrarMensajeChat(tipo, texto, origen) {
+    if (!usuarioEnSesion || restaurandoChat || !["user","milo"].includes(tipo)) return;
+    if (!obtenerChatActual()) crearChatNuevo();
+    const chat = obtenerChatActual();
+    const rol = tipo === "user" ? "user" : "assistant";
+    chat.messages.push({ role:rol, content:texto, ...(origen ? {origin:origen} : {}) });
+    if (rol === "user" && (chat.title === "Nuevo chat" || chat.messages.filter(m=>m.role==="user").length === 1)) {
+      chat.title = texto.replace(/\s+/g," ").slice(0,52) || "Nuevo chat";
+    }
+    chat.updatedAt = Date.now();
+    guardarChats();
+    pintarListaChats();
+  }
+  function exportarChatActual() {
+    const chat = obtenerChatActual(); if (!chat) return;
+    const texto = chat.messages.map(m => (m.role === "user" ? "Tú" : "Milo") + ":\n" + m.content).join("\n\n");
+    const blob = new Blob([texto], {type:"text/plain;charset=utf-8"});
+    const enlace = document.createElement("a"); enlace.href=URL.createObjectURL(blob); enlace.download=(chat.title||"conversacion").replace(/[^\p{L}\p{N}_-]+/gu,"-").slice(0,48)+".txt"; enlace.click(); setTimeout(()=>URL.revokeObjectURL(enlace.href),1000);
+  }
+  function editarUltimoMensaje() {
+    const chat = obtenerChatActual(); if (!chat) return;
+    const i = chat.messages.map(m=>m.role).lastIndexOf("user"); if (i < 0) return;
+    const texto = chat.messages[i].content;
+    chat.messages = chat.messages.slice(0,i);
+    chat.images = chat.images.filter(im=>im.afterMessageIndex <= i);
+    chat.updatedAt=Date.now(); guardarChats(); abrirChat(chat.id);
+    entradaTexto.value=texto; entradaTexto.focus(); entradaTexto.setSelectionRange(texto.length,texto.length);
+  }
+  function regenerarRespuesta() {
+    const chat = obtenerChatActual(); if (!chat) return;
+    const i=chat.messages.map(m=>m.role).lastIndexOf("user"); if(i<0) return;
+    const texto=chat.messages[i].content;
+    chat.messages=chat.messages.slice(0,i);
+    chat.images=chat.images.filter(im=>im.afterMessageIndex<=i);
+    chat.updatedAt=Date.now(); guardarChats(); abrirChat(chat.id);
+    entradaTexto.value=texto; enviarMensaje();
+  }
+  document.getElementById("botonNuevoChat").addEventListener("click", crearChatNuevo);
+  listaChats.addEventListener("change", () => abrirChat(listaChats.value));
+  buscadorChats.addEventListener("input", pintarListaChats);
+  document.getElementById("botonRenombrarChat").addEventListener("click", () => {
+    const chat=obtenerChatActual(); if(!chat)return;
+    const nombre=window.prompt("Nombre para esta conversación:",chat.title);
+    if(nombre?.trim()){chat.title=nombre.trim().slice(0,60);chat.updatedAt=Date.now();guardarChats();pintarListaChats();}
+  });
+  document.getElementById("botonBorrarChat").addEventListener("click", () => {
+    const chat=obtenerChatActual(); if(!chat || !window.confirm("¿Borrar esta conversación guardada?"))return;
+    chatsGuardados=chatsGuardados.filter(c=>c.id!==chat.id); chatActivoId=null;
+    guardarChats(); crearChatNuevo();
+  });
+  document.getElementById("botonExportarChat").addEventListener("click", exportarChatActual);
+  const claveTema="milo_tema_v1";
+  if(localStorage.getItem(claveTema)==="oscuro")document.documentElement.classList.add("tema-oscuro");
+  function actualizarBotonTema(){document.getElementById("botonTema").textContent=document.documentElement.classList.contains("tema-oscuro")?"Tema claro":"Tema oscuro";}
+  actualizarBotonTema();
+  document.getElementById("botonTema").addEventListener("click",()=>{document.documentElement.classList.toggle("tema-oscuro");localStorage.setItem(claveTema,document.documentElement.classList.contains("tema-oscuro")?"oscuro":"claro");actualizarBotonTema();});
+  estiloImagen.value=localStorage.getItem("milo_estilo_imagen")||"editorial";
+  estiloImagen.addEventListener("change",()=>localStorage.setItem("milo_estilo_imagen",estiloImagen.value));
   const chatDiv = document.getElementById("chat");
   const entradaTexto = document.getElementById("entradaTexto");
   const botonEnviar = document.getElementById("botonEnviar");
@@ -1234,6 +1401,7 @@ Reglas de contenido:
 
   function mostrarCuenta(usuario) {
     usuarioEnSesion = usuario;
+    if (usuario) cargarChatsUsuario();
     if (!usuario) {
       modoRegistro = false;
       tituloCuenta.textContent = "Iniciá sesión";
@@ -1400,7 +1568,7 @@ Reglas de contenido:
     }
     renderizarTextoPlano(contenedor, texto.slice(inicio));
   }
-  function agregarMensaje(tipo, texto, origen) {
+  function agregarMensaje(tipo, texto, origen, restaurando = false) {
     if (!texto) return;
 
     if (tipo === "sistema") {
@@ -1440,9 +1608,18 @@ Reglas de contenido:
       burbuja.appendChild(tag);
     }
 
+    if (tipo === "milo") {
+      const acciones=document.createElement("div"); acciones.className="acciones-respuesta";
+      const copiar=document.createElement("button"); copiar.type="button"; copiar.textContent="Copiar respuesta";
+      copiar.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(texto);copiar.textContent="Copiada";setTimeout(()=>copiar.textContent="Copiar respuesta",1400);}catch{const area=document.createElement("textarea");area.value=texto;document.body.appendChild(area);area.select();document.execCommand("copy");area.remove();copiar.textContent="Copiada";setTimeout(()=>copiar.textContent="Copiar respuesta",1400);}});
+      const editar=document.createElement("button"); editar.type="button"; editar.textContent="Editar último mensaje"; editar.addEventListener("click",editarUltimoMensaje);
+      const regenerar=document.createElement("button"); regenerar.type="button"; regenerar.textContent="Regenerar"; regenerar.addEventListener("click",regenerarRespuesta);
+      acciones.append(copiar,editar,regenerar); burbuja.appendChild(acciones);
+    }
     fila.appendChild(avatar);
     fila.appendChild(burbuja);
     chatDiv.appendChild(fila);
+    if (!restaurando) registrarMensajeChat(tipo, texto, origen);
     chatDiv.scrollTop = chatDiv.scrollHeight;
   }
 
