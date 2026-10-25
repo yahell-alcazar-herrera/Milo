@@ -121,15 +121,20 @@ async function atenderChat(request, response) {
         model: body.model || "openai/gpt-oss-20b",
         messages: mensajesLimpios,
         temperature: Math.min(1, Math.max(0, Number(body.temperature) || 0.75)),
-        ...(Number.isFinite(Number(body.max_tokens)) && Number(body.max_tokens) > 0
-          ? { max_tokens: Math.min(4000, Math.floor(Number(body.max_tokens))) }
-          : {})
+        ...(() => {
+          const maxTokens = Number(body.max_completion_tokens ?? body.max_tokens);
+          return Number.isFinite(maxTokens) && maxTokens > 0
+            ? { max_completion_tokens: Math.min(4000, Math.floor(maxTokens)) }
+            : {};
+        })()
       })
     });
     const data = await groqResponse.json();
+    if (!groqResponse.ok) console.error("Groq respondió HTTP " + groqResponse.status + ":", String(data.error?.message || data.error || "sin detalle").slice(0, 240));
     return enviarJson(response, groqResponse.status, data);
   } catch (error) {
     const status = error.message === "body_too_large" ? 413 : 502;
+    if (status !== 413) console.error("Falló la llamada a Groq:", String(error.message || error).slice(0, 240));
     return enviarJson(response, status, { error: status === 413 ? "Solicitud demasiado grande" : "No se pudo conectar con Groq" });
   }
 }

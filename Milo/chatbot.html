@@ -919,15 +919,19 @@ Reglas de contenido:
   }
 
   const RE_IMAGEN_TEMA = /\b(imagen(?:es)?|foto(?:graf[ií]a|s)?|retrato(?:s)?|dibujo(?:s)?|ilustraci[oó]n(?:es)?|p[oó]ster(?:s)?|pintura(?:s)?|arte digital|avatar(?:es)?|logo(?:s)?|icono(?:s)?|escena(?:s)?|paisaje(?:s)?|portada(?:s)?|fondo(?:s)?|viñeta(?:s)?|picture|photo|photograph|drawing|illustration|artwork)\b/i;
-  const RE_IMAGEN_ACCION = /\b(crea\w*|haz\w*|hace\w*|genera\w*|dibuja\w*|ilustra\w*|diseña\w*|pinta\w*|retrata\w*|imagina\w*|inventa\w*|muestra\w*|ens[eé]ñame|visualiza\w*|representa\w*|quiero|quisiera|necesito|me gustar[ií]a|puedes|pod[eé]s|podr[ií]as|me puedes|me podr[ií]as|quiero ver|me gustar[ií]a ver|puedes hacer|podr[ií]as hacer|me haces|hazme|crea para m[ií])\b/i;
+  const RE_IMAGEN_ACCION = /\b(crea\w*|cre[eé]me|haz\w*|hace\w*|genera\w*|dibuja\w*|ilustra\w*|diseña\w*|pinta\w*|retrata\w*|imagina\w*|inventa\w*|muestra\w*|ens[eé]ñame|visualiza\w*|representa\w*|quiero|quisiera|necesito|me gustar[ií]a|puedes|pod[eé]s|podr[ií]as|me puedes|me podr[ií]as|quiero ver|me gustar[ií]a ver|puedes hacer|podr[ií]as hacer|me haces|me har[ií]as|hazme|dame|crea para m[ií])\b/i;
+  const RE_ACCION_CON_OBJETO = /\b(haz\w*|hace\w*|crea\w*|cre[eé]me|genera\w*|dibuja\w*|ilustra\w*|pinta\w*|retrata\w*|imagina\w*|dame|muestra\w*|mu[eé]strame|ens[eé]ñame|quiero ver)\s+(?:(?:me|para m[ií])\s+)?(?:un|una|unos|unas|el|la|los|las|a|al)\s+([^\s,.;!?]+)/i;
+  const RE_NO_VISUAL = /\b(resumen|lista|tabla|documento|archivo|carta|correo|email|ensayo|poema|cuento|historia|plan|rutina|receta|c[oó]digo|programa|operaci[oó]n|c[aá]lculo|traducci[oó]n|pregunta|respuesta|explicaci[oó]n|informe|ejemplo|chiste|consejo|definici[oó]n|soluci[oó]n)\b/i;
   const RE_EDICION_IMAGEN = /\b(pon(le|la|lo|les|los)?|agr[eé]ga(le|la|lo)?|añade(le|la|lo)?|qu[ií]ta(le|la|lo)?|cambia(le|la|lo)?|modifica|edita|ajusta|transforma|ahora (con|sin|pon|agr[eé]ga|haz)|haz(lo|la) (con|sin)|c[oó]rtale|v[ií]ste(le|la)|c[aá]mbiale)\b/i;
   let ultimaSolicitudImagen = "";
   let ultimaImagenSvg = "";
 
   function detectarSolicitudImagen(texto) {
     const mensaje = texto.trim();
+    const fraseDeImagen = /^\s*(?:(?:la|el|una?|otra|este|esa)\s+)?(?:imagen|foto(?:graf[ií]a)?|dibujo|ilustraci[oó]n|retrato|pintura|poster|paisaje)\s+(?:de|sobre|con|que muestre)\b/i;
+    if (fraseDeImagen.test(mensaje)) return true;
     if (RE_IMAGEN_ACCION.test(mensaje) && RE_IMAGEN_TEMA.test(mensaje)) return true;
-    if (/\b(dibuja|ilustra|pinta|retrata)\w*\b/i.test(mensaje) && /\b(un|una|el|la|los|las|a|al)\s+\w+/i.test(mensaje)) return true;
+    if (RE_ACCION_CON_OBJETO.test(mensaje) && !RE_NO_VISUAL.test(mensaje)) return true;
     if (/\b(c[oó]mo se ver[ií]a|ens[eé]ñame|mu[eé]strame|visualiza)\b/i.test(mensaje) && mensaje.split(/\s+/).length > 3) return true;
     return Boolean(ultimaImagenSvg && (RE_EDICION_IMAGEN.test(mensaje) || /^\s*(ahora|mejor|otra versi[oó]n|igual pero|con m[aá]s|con menos|m[aá]s|menos|hazlo|hazla|que tenga)\b/i.test(mensaje)));
   }
@@ -1093,26 +1097,37 @@ Reglas de contenido:
   const MODELO = "openai/gpt-oss-20b";
   const API_URL = "/api/chat";
 
-  function limpiarSVG(svgTexto) {
+  function extraerSVG(svgTexto) {
     const inicio = svgTexto.indexOf("<svg");
     const final = svgTexto.lastIndexOf("</svg>");
-    if (inicio < 0 || final < inicio) throw new Error("La IA no devolvió una ilustración SVG válida");
+    if (inicio < 0 || final < inicio) throw new Error("La respuesta de la IA no contenía SVG");
+    return svgTexto.slice(inicio, final + 6)
+      .replace(/<br\s*\/?>/gi, " ")
+      .replace(/&(?!amp;|lt;|gt;|quot;|apos;|#\d+;|#x[0-9a-f]+;)/gi, "&amp;");
+  }
+
+  function limpiarSVG(svgTexto) {
     const parser = new DOMParser();
-    const documento = parser.parseFromString(svgTexto.slice(inicio, final + 6), "image/svg+xml");
+    const documento = parser.parseFromString(extraerSVG(svgTexto), "image/svg+xml");
     const raiz = documento.documentElement;
-    if (raiz.localName !== "svg" || documento.querySelector("parsererror")) throw new Error("La ilustración SVG no se pudo leer");
+    const errorXML = documento.querySelector("parsererror");
+    if (raiz.localName !== "svg" || errorXML) {
+      throw new Error("La IA devolvió SVG mal formado: " + String(errorXML?.textContent || "sin etiqueta svg").slice(0, 140));
+    }
 
     const etiquetas = new Set(["svg","g","path","rect","circle","ellipse","line","polyline","polygon","text","tspan","defs","linearGradient","radialGradient","stop","clipPath"]);
     const atributos = new Set(["xmlns","viewBox","width","height","x","y","x1","y1","x2","y2","cx","cy","r","rx","ry","d","points","fill","fill-opacity","stroke","stroke-width","stroke-linecap","stroke-linejoin","stroke-opacity","opacity","transform","offset","stop-color","stop-opacity","id","font-family","font-size","font-weight","text-anchor","dominant-baseline","clip-path"]);
-    [...raiz.attributes].forEach((atributo) => {
-      if (!atributos.has(atributo.name) || /^on/i.test(atributo.name) || /(?:https?:|javascript:|data:)/i.test(atributo.value)) raiz.removeAttribute(atributo.name);
+    const limpiarAtributos = (nodo) => [...nodo.attributes].forEach((atributo) => {
+      if (!atributos.has(atributo.name) || /^on/i.test(atributo.name) || /(?:https?:|javascript:|data:)/i.test(atributo.value)) nodo.removeAttribute(atributo.name);
     });
+    limpiarAtributos(raiz);
     [...raiz.querySelectorAll("*")].forEach((nodo) => {
       if (!etiquetas.has(nodo.localName)) { nodo.remove(); return; }
-      [...nodo.attributes].forEach((atributo) => {
-        if (!atributos.has(atributo.name) || /^on/i.test(atributo.name) || /(?:https?:|javascript:|data:)/i.test(atributo.value)) nodo.removeAttribute(atributo.name);
-      });
+      limpiarAtributos(nodo);
     });
+    if (!raiz.querySelector("path,rect,circle,ellipse,line,polyline,polygon,text")) {
+      throw new Error("La IA devolvió un SVG vacío, sin elementos visibles");
+    }
     if (!raiz.getAttribute("viewBox")) raiz.setAttribute("viewBox", "0 0 1024 1024");
     raiz.setAttribute("width", "1024");
     raiz.setAttribute("height", "1024");
@@ -1128,37 +1143,57 @@ Reglas de contenido:
     return "Listo. Preparé la ilustración. Si querés cambiar algo, decime qué le agrego o qué ajusto.";
   }
 
+  async function pedirRespuestaIA(mensajes, temperatura, maxTokens) {
+    const respuesta = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: MODELO,
+        messages: mensajes,
+        temperature: temperatura,
+        max_completion_tokens: Math.min(4000, maxTokens)
+      })
+    });
+    let datos;
+    try { datos = await respuesta.json(); }
+    catch { throw new Error("El servidor devolvió una respuesta ilegible (HTTP " + respuesta.status + ")"); }
+    if (!respuesta.ok) {
+      const detalle = typeof datos.error === "string" ? datos.error : datos.error?.message || datos.message;
+      throw new Error(String(detalle || "Error HTTP " + respuesta.status).slice(0, 240));
+    }
+    const contenido = datos.choices?.[0]?.message?.content?.trim();
+    if (!contenido) throw new Error("La IA respondió sin contenido");
+    return contenido;
+  }
+
   async function crearArchivoConIA(texto, tipo) {
     const esEdicion = tipo === "imagen" && esEdicionImagen(texto);
     const contextoEdicion = esEdicion
       ? "Edita el SVG previo conservando sujeto, encuadre y estilo. Aplica esta instrucción: " + texto + "\n\nSVG actual:\n" + ultimaImagenSvg
       : texto;
     const mensajesContexto = historial.filter(mensaje => mensaje.role !== "system").slice(-8);
-    const sistemaImagen = "Diseña una ilustración vectorial editorial, pulida y clara: composición focal, espacio negativo, formas orgánicas limpias, paleta armoniosa de 4 a 6 colores y profundidad sutil con degradados discretos. Evita saturación, clipart, emojis, caricaturas genéricas, texto decorativo y acumulación de formas. Si piden una foto, interpreta la escena como ilustración refinada y no prometas fotorrealismo. Devuelve únicamente un SVG completo con viewBox 0 0 1024 1024, con fondo y composición terminada. Usa etiquetas SVG estándar; sin scripts, CSS, enlaces, filtros externos ni imágenes remotas. Máximo 70 formas.";
+    const sistemaImagen = "Diseña una ilustración vectorial editorial, pulida y clara: composición focal, espacio negativo, formas orgánicas limpias, paleta armoniosa de 4 a 6 colores y profundidad sutil con degradados discretos. Evita saturación, clipart, emojis, caricaturas genéricas, texto decorativo y acumulación de formas. Si piden una foto, interpreta la escena como ilustración refinada y no prometas fotorrealismo. Devuelve únicamente un SVG completo, válido como XML, con viewBox 0 0 1024 1024, fondo y composición terminada. No uses entidades HTML como &nbsp;: escapa los ampersands como &amp;. Usa solo etiquetas svg, defs, linearGradient, radialGradient, stop, g, path, rect, circle, ellipse, line, polyline, polygon, text y tspan. Sin scripts, CSS, enlaces, filtros ni imágenes remotas. No uses más de 45 elementos visibles.";
     const instruccionesDocumento = "La petición es: " + texto + "\n\nRedacta el contenido completo de un documento sencillo, claro y útil en español. Incluye título, introducción, explicación por secciones, ejemplos o pasos cuando correspondan y un resumen final. Devuelve únicamente el contenido del documento, sin hablar de esta instrucción.";
     const mensajes = tipo === "imagen"
       ? [{ role: "system", content: sistemaImagen }, ...mensajesContexto, { role: "user", content: contextoEdicion }]
       : [{ role: "system", content: "Sos un redactor de documentos educativos." }, { role: "user", content: instruccionesDocumento }];
 
-    const respuesta = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: MODELO,
-        messages,
-        temperature: tipo === "imagen" ? 0.55 : 0.7,
-        max_tokens: tipo === "imagen" ? 3500 : 2200
-      })
-    });
-    const datos = await respuesta.json();
-    if (!respuesta.ok) throw new Error(datos.error?.message || respuesta.status);
-    const contenido = datos.choices?.[0]?.message?.content?.trim();
-    if (!contenido) throw new Error("La IA no devolvió contenido");
-
+    let contenido = await pedirRespuestaIA(mensajes, tipo === "imagen" ? 0.35 : 0.7, tipo === "imagen" ? 3800 : 2200);
     if (tipo === "imagen") {
-      const respuestaVisual = dibujarPlanIA(contenido, texto);
-      ultimaSolicitudImagen = esEdicion ? ultimaSolicitudImagen + "\nEdición: " + texto : texto;
-      return respuestaVisual;
+      try {
+        const visual = dibujarPlanIA(contenido, texto);
+        ultimaSolicitudImagen = esEdicion ? ultimaSolicitudImagen + "\nEdición: " + texto : texto;
+        return visual;
+      } catch (errorFormato) {
+        const reparar = [
+          { role: "system", content: sistemaImagen + " La respuesta anterior no era XML válido. Reescríbela desde cero como un solo SVG XML válido. Asegúrate de cerrar todas las etiquetas y no agregues texto fuera del SVG." },
+          { role: "user", content: contextoEdicion + "\n\nSVG que debes reparar:\n" + contenido.slice(0, 9000) }
+        ];
+        contenido = await pedirRespuestaIA(reparar, 0.2, 3800);
+        const visual = dibujarPlanIA(contenido, texto);
+        ultimaSolicitudImagen = esEdicion ? ultimaSolicitudImagen + "\nEdición: " + texto : texto;
+        return visual;
+      }
     }
     const nombre = "milo-documento-ia.txt";
     agregarEnlaceDescarga(nombre, contenido, "text/plain;charset=utf-8");
@@ -1427,7 +1462,17 @@ Reglas de contenido:
         return;
       } catch (error) {
         if (tipoCreacion === "imagen") {
-          agregarMensaje("sistema", "No pude terminar la ilustración esta vez. Probá describirla de nuevo con otros detalles.");
+          console.error("Falló la generación de ilustración:", error);
+          const detalle = String(error?.message || "Error desconocido").slice(0, 210);
+          let mensaje = "No pude crear la ilustración: " + detalle;
+          if (/429|rate.?limit|quota|TPM|l[ií]mite de solicitudes/i.test(detalle)) {
+            mensaje = "El servicio de ilustraciones alcanzó su límite de uso. Esperá un momento e inténtalo de nuevo.";
+          } else if (/401|403|GROQ_API_KEY|api key|autorizaci[oó]n/i.test(detalle)) {
+            mensaje = "El servidor de Milo no tiene una clave válida de Groq. Hace falta corregir GROQ_API_KEY en Render.";
+          } else if (/SVG|XML|parser|etiqueta svg/i.test(detalle)) {
+            mensaje = "La IA devolvió un dibujo en un formato incompleto, incluso después de intentar repararlo. El detalle es: " + detalle;
+          }
+          agregarMensaje("sistema", mensaje);
           botonEnviar.disabled = false; botonMic.disabled = false; entradaTexto.focus();
           return;
         }
