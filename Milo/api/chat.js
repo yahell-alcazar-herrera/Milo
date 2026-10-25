@@ -34,7 +34,10 @@ export default async function handler(request, response) {
       body: JSON.stringify({
         model: body.model || "openai/gpt-oss-20b",
         messages: mensajesLimpios,
-        temperature: Math.min(1, Math.max(0, Number(body.temperature) || 0.75))
+        temperature: Math.min(1, Math.max(0, Number(body.temperature) || 0.75)),
+        ...(Number.isFinite(Number(body.max_tokens)) && Number(body.max_tokens) > 0
+          ? { max_tokens: Math.min(4000, Math.floor(Number(body.max_tokens))) }
+          : {})
       })
     });
 
