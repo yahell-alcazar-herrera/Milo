@@ -53,7 +53,13 @@ Milo permite crear cuentas con nombre de usuario y contraseña. No envía correo
 - Para crear cuentas e iniciar sesión, ejecuta Milo con `npm start`; abrir `chatbot.html` directamente no conecta con el servidor.
 - En Render, monta un disco persistente en `/var/data` y define `MILO_DATA_DIR=/var/data` para conservar `users.json` entre despliegues. El servicio debe tener un plan compatible y el disco genera un cargo.
 - Este flujo no incluye verificación de correo ni recuperación de contraseña.
-## 4) Qué no debes hacer en producción
+### Experiencia de chat e imágenes
+
+- Las respuestas pueden incluir Markdown. Los bloques de código aparecen en tarjetas con botón para copiar.
+- El dictado usa el reconocimiento de voz integrado en Chrome/Edge y requiere HTTPS y permiso de micrófono. La app solicita español general para mejorar compatibilidad.
+- Las imágenes se crean como ilustraciones SVG con Groq. Milo puede revisar su ilustración anterior si le pedís cambios, por ejemplo “ponle pelo”. No hay un proveedor de generación fotorrealista ni búsqueda web en vivo configurados.
+
+---## 4) Qué no debes hacer en producción
 
 - No dejar `GROQ_API_KEY` en el HTML
 - No poner el key en GitHub
