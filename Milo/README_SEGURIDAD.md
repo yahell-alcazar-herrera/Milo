@@ -6,8 +6,9 @@ Este proyecto debe publicarse como una aplicación web real, no como un archivo 
 
 - La clave de Groq queda solo en el servidor.
 - El navegador nunca debe ver `GROQ_API_KEY`.
-- La autenticación real debe ser con usuarios y contraseñas seguras.
-- Los usuarios no deben poder asumir la cuenta de otra persona con solo conocer un Gmail.
+- Las cuentas nuevas usan nombre de usuario y contraseña; no requieren correo ni verificación por email.
+- Al crear una cuenta se pide una contraseña de al menos 8 caracteres; iniciar sesión acepta la contraseña existente.
+- Los nombres de usuario deben ser únicos y las contraseñas se verifican en el servidor.
 
 ## Variables de entorno recomendadas
 

@@ -44,27 +44,15 @@ Dejarlo disponible en una URL tipo `milo.app` o similar.
 
 ---
 
-## 3) Autenticación real recomendada
+## 3) Cuentas propias de Milo
 
-### Mejor opción
-Usar Supabase Auth.
+Milo permite crear cuentas con nombre de usuario y contraseña. No envía correos ni depende de un proveedor externo de inicio de sesión.
 
-### Qué te da
-- registro con email/password seguro
-- contraseñas hash
-- recuperación de contraseña
-- sesiones más seguras
-- mejor escalabilidad que `users.json`
-
-### Flujo sugerido
-1. Crear proyecto en Supabase
-2. Activar Auth > Email
-3. Crear tabla `profiles` si necesitas datos extra
-4. Conectar backend con Supabase
-5. Guardar sesión del usuario con cookie segura
-
----
-
+- El servidor valida que el nombre sea único.
+- Las contraseñas se guardan con hash scrypt en `users.json`.
+- Para crear cuentas e iniciar sesión, ejecuta Milo con `npm start`; abrir `chatbot.html` directamente no conecta con el servidor.
+- En Render, monta un disco persistente en `/var/data` y define `MILO_DATA_DIR=/var/data` para conservar `users.json` entre despliegues. El servicio debe tener un plan compatible y el disco genera un cargo.
+- Este flujo no incluye verificación de correo ni recuperación de contraseña.
 ## 4) Qué no debes hacer en producción
 
 - No dejar `GROQ_API_KEY` en el HTML

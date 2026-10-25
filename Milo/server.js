@@ -12,7 +12,13 @@ const MAX_BODY = 1024 * 1024;
 const MAX_MESSAGES = 30;
 const MAX_MESSAGE_LENGTH = 12000;
 const solicitudes = new Map();
-const USERS_FILE = path.join(ROOT, "users.json");
+const DATA_DIR = process.env.MILO_DATA_DIR || ROOT;
+fs.mkdirSync(DATA_DIR, { recursive: true });
+const USERS_FILE = path.join(DATA_DIR, "users.json");
+const SEED_USERS_FILE = path.join(ROOT, "users.json");
+if (DATA_DIR !== ROOT && !fs.existsSync(USERS_FILE) && fs.existsSync(SEED_USERS_FILE)) {
+  fs.copyFileSync(SEED_USERS_FILE, USERS_FILE);
+}
 const sesiones = new Map();
 
 function leerUsuarios() {
@@ -23,6 +29,10 @@ function guardarUsuarios(usuarios) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(usuarios, null, 2), { mode: 0o600 });
 }
 
+function nombreDeUsuario(usuario) {
+  return usuario.username || String(usuario.email || "usuario").split("@")[0];
+}
+
 function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
   return new Promise((resolve, reject) => {
     crypto.scrypt(password, salt, 64, (error, derivedKey) => {
@@ -30,17 +40,6 @@ function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
       else resolve(`${salt}:${derivedKey.toString("hex")}`);
     });
   });
-}
-
-function esPasswordSegura(password, email = "") {
-  const texto = String(password || "");
-  if (texto.length < 12) return false;
-  if (texto.toLowerCase().includes(String(email).toLowerCase())) return false;
-  if (!/[a-z]/.test(texto)) return false;
-  if (!/[A-Z]/.test(texto)) return false;
-  if (!/[0-9]/.test(texto)) return false;
-  if (!/[^A-Za-z0-9]/.test(texto)) return false;
-  return true;
 }
 
 async function comprobarPassword(password, guardada) {
@@ -135,7 +134,7 @@ async function atenderChat(request, response) {
 async function atenderAuth(request, response, ruta) {
   if (request.method === "GET" && ruta === "/api/auth/me") {
     const usuario = usuarioActual(request);
-    return enviarJson(response, 200, { user: usuario ? { email: usuario.email } : null });
+    return enviarJson(response, 200, { user: usuario ? { username: nombreDeUsuario(usuario) } : null });
   }
   if (request.method === "POST" && ruta === "/api/auth/logout") {
     const token = cookies(request).milo_session;
@@ -148,30 +147,29 @@ async function atenderAuth(request, response, ruta) {
 
   try {
     const body = await leerJson(request);
-    const email = String(body.email || "").trim().toLowerCase();
+    const username = String(body.username || body.email || "").trim().toLowerCase();
     const password = String(body.password || "");
-    const confirmPassword = String(body.confirmPassword || "");
-    if (!/^\S+@\S+\.\S+$/.test(email)) {
-      return enviarJson(response, 400, { error: "Usá un correo válido" });
-    }
-    if (password.length < 12 || !esPasswordSegura(password, email)) {
-      return enviarJson(response, 400, { error: "La contraseña debe tener al menos 12 caracteres, incluir mayúscula, minúscula, número y símbolo." });
-    }
     const usuarios = leerUsuarios();
     if (ruta === "/api/auth/register") {
-      if (password !== confirmPassword) return enviarJson(response, 400, { error: "Las contraseñas no coinciden" });
-      if (usuarios.some((user) => user.email === email)) return enviarJson(response, 409, { error: "Ese correo ya está registrado" });
-      const usuario = { id: crypto.randomUUID(), email, password: await hashPassword(password), createdAt: new Date().toISOString() };
+      if (!/^[a-z0-9_-]{3,20}$/.test(username)) return enviarJson(response, 400, { error: "El nombre debe tener de 3 a 20 letras, números, guiones o guiones bajos." });
+      if (password.length < 8) return enviarJson(response, 400, { error: "Usá una contraseña de al menos 8 caracteres." });
+      if (usuarios.some((user) => nombreDeUsuario(user).toLowerCase() === username)) return enviarJson(response, 409, { error: "Ese nombre de usuario ya está ocupado. Elegí otro." });
+      const usuario = { id: crypto.randomUUID(), username, password: await hashPassword(password), createdAt: new Date().toISOString() };
       usuarios.push(usuario);
       guardarUsuarios(usuarios);
-      crearSesion(response, { id: usuario.id, email });
-      return enviarJson(response, 201, { user: { email } });
+      crearSesion(response, { id: usuario.id, username });
+      return enviarJson(response, 201, { user: { username } });
     }
     if (ruta === "/api/auth/login") {
-      const usuario = usuarios.find((user) => user.email === email);
-      if (!usuario || !(await comprobarPassword(password, usuario.password))) return enviarJson(response, 401, { error: "Correo o contraseña incorrectos" });
-      crearSesion(response, { id: usuario.id, email });
-      return enviarJson(response, 200, { user: { email } });
+      if (!username || !password) return enviarJson(response, 400, { error: "Escribí tu nombre de usuario y contraseña." });
+      const usuario = usuarios.find((user) => {
+        const nombreGuardado = nombreDeUsuario(user).toLowerCase();
+        return nombreGuardado === username || String(user.email || "").toLowerCase() === username;
+      });
+      if (!usuario || !(await comprobarPassword(password, usuario.password))) return enviarJson(response, 401, { error: "Nombre de usuario o contraseña incorrectos" });
+      const nombre = nombreDeUsuario(usuario);
+      crearSesion(response, { id: usuario.id, username: nombre, email: usuario.email });
+      return enviarJson(response, 200, { user: { username: nombre } });
     }
     return enviarJson(response, 404, { error: "Ruta no encontrada" });
   } catch {

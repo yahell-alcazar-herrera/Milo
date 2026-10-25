@@ -444,6 +444,59 @@
     #entrada-zona { padding: 12px 18px 18px; position: sticky; bottom: 0; background: rgba(16, 21, 20, 0.9); backdrop-filter: blur(15px); }
     .adjunto-local { max-width: 94%; }
   }
+
+  /* Interfaz clara y tranquila */
+  :root {
+    color-scheme: light;
+    --bg: #f6f7f9; --bg-degradado: #f6f7f9; --panel: #fff;
+    --texto: #262832; --texto-tenue: #737783; --acento: #60758a;
+    --acento-oscuro: #fff; --burbuja-user: #eaf0f4; --burbuja-milo: #fff;
+    --borde: #e7e8ed; --sombra: 0 18px 55px rgba(34,37,48,.12);
+  }
+  body { background: var(--bg); color: var(--texto); }
+  header { position: sticky; top: 0; padding: 14px clamp(20px,5vw,72px); background: rgba(255,255,255,.92); border-bottom: 1px solid var(--borde); backdrop-filter: blur(16px); }
+  header .avatar { width: 40px; height: 40px; border-radius: 13px; color: #fff; background: linear-gradient(145deg,#74899d,#526b82); box-shadow: none; }
+  header h1 { font-family: "Inter",sans-serif; font-size: 16px; letter-spacing: 0; }
+  header .estado .punto-estado { background: #71869b; box-shadow: none; animation: none; }
+  #cerrarSesion { border-color: var(--borde); color: #5f6370; }
+  #chat { width: min(850px,100%); min-height: 62vh; gap: 20px; padding: clamp(28px,5vh,56px) clamp(20px,5vw,40px); }
+  #chat:empty { justify-content: center; align-items: center; text-align: center; }
+  #chat:empty::before { content: "Hola, soy Milo. ¿Qué te gustaría conversar hoy?"; color: #858894; font-size: clamp(18px,2.5vw,23px); font-weight: 500; }
+  .fila-msg { max-width: min(720px,88%); }
+  .fila-msg .avatar-msg { background: #e7edf2; color: #536b80; }
+  .msg { padding: 13px 16px; border: 1px solid var(--borde); }
+  .msg.user { border-color: #dfe7ed; box-shadow: none; }
+  .msg.milo { box-shadow: none; }
+  #entrada-zona { width: min(850px,100%); padding: 12px clamp(20px,5vw,40px) 28px; }
+  #entrada-zona input { background: #fff; border-color: #dedfe6; border-radius: 18px; box-shadow: 0 5px 22px rgba(34,37,48,.05); }
+  #entrada-zona input:focus, #config input:focus { outline: 2px solid #d9e3ea; border-color: #94a9b8; }
+  #entrada-zona button { background: var(--acento); color: #fff; border-radius: 15px; }
+  #botonMic { background: #fff; border-color: var(--borde); color: #656977; }
+  .adjunto-local { background: #fff; box-shadow: 0 8px 28px rgba(34,37,48,.08); }
+  .adjunto-local img { background: #f2f2f5; }
+  .adjunto-local .boton-descarga { background: var(--acento); color: #fff; }
+  #modalTerminos, #modalCuenta { background: rgba(37,39,50,.38); backdrop-filter: blur(5px); }
+  #modalTerminos .tarjeta, #modalCuenta .tarjeta-cuenta { background: #fff; border: 1px solid var(--borde); border-radius: 22px; box-shadow: 0 24px 80px rgba(34,37,48,.16); }
+  #modalTerminos h2, #modalCuenta h2 { color: var(--texto); }
+  #modalCuenta .tarjeta-cuenta { width: min(420px,100%); padding: 34px; }
+  #modalCuenta h2 { font-size: 24px; letter-spacing: -.5px; }
+  #modalCuenta p { font-size: 14px; margin-bottom: 24px; }
+  #modalCuenta form { gap: 10px; }
+  #modalCuenta label { color: #555966; font-size: 13px; font-weight: 600; margin: 4px 0 -4px; }
+  #modalCuenta input { padding: 13px 14px; background: #fff; border: 1px solid #dedfe6; border-radius: 11px; color: var(--texto); font: inherit; }
+  #modalCuenta input:focus { outline: 2px solid #d9e3ea; border-color: #94a9b8; }
+  #modalCuenta button[type="submit"], #modalTerminos button { margin-top: 4px; padding: 13px; border-radius: 11px; background: var(--acento); color: #fff; font-size: 14px; }
+  #modalCuenta .alternar-cuenta { color: #526b80; font-size: 13px; }
+  #modalCuenta .ayuda-cuenta { margin: 0; font-size: 12px; }
+  #errorCuenta { min-height: 18px; color: #b34b56; font-size: 13px; }
+  #modalTerminos a { color: #526b80; }
+  #modalTerminos button:disabled { opacity: .45; }
+  @media (max-width: 640px) {
+    header { padding: 13px 16px; }
+    #chat { min-height: 60vh; padding: 30px 16px; }
+    #entrada-zona { padding: 10px 14px 18px; background: rgba(246,247,249,.94); }
+    #modalCuenta .tarjeta-cuenta { padding: 28px 22px; }
+  }
 </style>
 </head>
 <body>
@@ -464,16 +517,19 @@
 
 <div id="modalCuenta">
   <div class="tarjeta-cuenta">
-    <h2 id="tituloCuenta">Entrar a Milo</h2>
-    <p id="subtituloCuenta">Creá tu cuenta para continuar la conversación.</p>
+    <h2 id="tituloCuenta">Iniciá sesión</h2>
+    <p id="subtituloCuenta">Entrá con tu nombre de usuario y contraseña.</p>
     <form id="formCuenta">
-      <input id="emailCuenta" type="email" placeholder="Tu correo" autocomplete="email" required>
-      <input id="passwordCuenta" type="password" placeholder="Contraseña" autocomplete="current-password" minlength="12" required>
-      <input id="passwordConfirmCuenta" type="password" placeholder="Repetí la contraseña" autocomplete="new-password" minlength="12" style="display:none;">
+      <label for="usuarioCuenta">Nombre de usuario</label>
+      <input id="usuarioCuenta" type="text" placeholder="Tu nombre de usuario" autocomplete="username" required>
+      <p id="ayudaUsuario" class="ayuda-cuenta" hidden>Usá de 3 a 20 letras, números, guiones o guiones bajos. No ocupás correo.</p>
+      <label for="passwordCuenta">Contraseña</label>
+      <input id="passwordCuenta" type="password" placeholder="Tu contraseña" autocomplete="current-password" required>
+      <p id="ayudaCuenta" class="ayuda-cuenta" hidden>Usá una contraseña de al menos 8 caracteres.</p>
       <div id="errorCuenta" role="alert"></div>
-      <button id="botonCuenta" type="submit">Entrar</button>
+      <button id="botonCuenta" type="submit">Iniciar sesión</button>
     </form>
-    <button id="alternarCuenta" class="alternar-cuenta" type="button">¿No tenés cuenta? Crear una</button>
+    <button id="alternarCuenta" class="alternar-cuenta" type="button">¿Primera vez? Crear cuenta</button>
   </div>
 </div>
 
@@ -879,7 +935,8 @@ Reglas de contenido:
       body { font-family: Georgia, serif; color: #20251f; max-width: 760px; margin: 48px auto; padding: 0 28px; }
       pre { white-space: pre-wrap; font: 16px/1.65 Georgia, serif; }
       @media print { body { margin: 0; max-width: none; } }
-    </style></head><body><pre>${contenidoSeguro}</pre></body></html>`);
+    
+</style></head><body><pre>${contenidoSeguro}</pre></body></html>`);
     ventana.document.close();
     ventana.focus();
     ventana.addEventListener("load", () => ventana.print(), { once: true });
@@ -1226,27 +1283,48 @@ Reglas de contenido:
   const tituloCuenta = document.getElementById("tituloCuenta");
   const subtituloCuenta = document.getElementById("subtituloCuenta");
   const botonCuenta = document.getElementById("botonCuenta");
+  const ayudaCuenta = document.getElementById("ayudaCuenta");
+  const ayudaUsuario = document.getElementById("ayudaUsuario");
   const alternarCuenta = document.getElementById("alternarCuenta");
   const errorCuenta = document.getElementById("errorCuenta");
-  const emailCuenta = document.getElementById("emailCuenta");
+  const usuarioCuenta = document.getElementById("usuarioCuenta");
   const passwordCuenta = document.getElementById("passwordCuenta");
-  const passwordConfirmCuenta = document.getElementById("passwordConfirmCuenta");
   const cerrarSesion = document.getElementById("cerrarSesion");
   let modoRegistro = false;
+  let usuarioEnSesion = null;
 
   function mostrarCuenta(usuario) {
+    usuarioEnSesion = usuario;
+    if (!usuario) {
+      modoRegistro = false;
+      tituloCuenta.textContent = "Iniciá sesión";
+      subtituloCuenta.textContent = "Entrá con tu nombre de usuario y contraseña.";
+      botonCuenta.textContent = "Iniciar sesión";
+      alternarCuenta.textContent = "¿Primera vez? Crear cuenta";
+      actualizarCamposCuenta();
+    }
     modalCuenta.classList.toggle("oculto", Boolean(usuario));
     cerrarSesion.style.display = usuario ? "inline-block" : "none";
-    estadoSpan.textContent = usuario ? usuario.email : "en línea";
+    estadoSpan.textContent = usuario ? (usuario.username || usuario.email?.split("@")[0]) : "en línea";
   }
 
   function actualizarCamposCuenta() {
-    const visible = modoRegistro;
-    passwordConfirmCuenta.style.display = visible ? "block" : "none";
-    passwordConfirmCuenta.required = visible;
-    passwordConfirmCuenta.value = "";
-    passwordCuenta.placeholder = visible ? "Contraseña segura" : "Contraseña";
-    passwordCuenta.autocomplete = visible ? "new-password" : "current-password";
+    if (modoRegistro) {
+      usuarioCuenta.minLength = 3;
+      usuarioCuenta.maxLength = 20;
+      usuarioCuenta.pattern = "[A-Za-z0-9_-]{3,20}";
+    } else {
+      usuarioCuenta.removeAttribute("minlength");
+      usuarioCuenta.removeAttribute("maxlength");
+      usuarioCuenta.removeAttribute("pattern");
+    }
+    usuarioCuenta.placeholder = modoRegistro ? "Elige un nombre de usuario" : "Tu nombre de usuario";
+    usuarioCuenta.autocomplete = "username";
+    passwordCuenta.minLength = modoRegistro ? 8 : 0;
+    passwordCuenta.placeholder = modoRegistro ? "Al menos 8 caracteres" : "Tu contraseña";
+    passwordCuenta.autocomplete = modoRegistro ? "new-password" : "current-password";
+    ayudaCuenta.hidden = !modoRegistro;
+    ayudaUsuario.hidden = !modoRegistro;
   }
 
   async function consultarSesion() {
@@ -1255,16 +1333,16 @@ Reglas de contenido:
       const datos = await respuesta.json();
       mostrarCuenta(datos.user);
     } catch {
-      errorCuenta.textContent = "No se pudo conectar con el servidor.";
+      errorCuenta.textContent = "Milo no pudo conectarse al servidor. Abrí la aplicación desde su servidor, no desde el archivo HTML.";
     }
   }
 
   alternarCuenta.addEventListener("click", () => {
     modoRegistro = !modoRegistro;
-    tituloCuenta.textContent = modoRegistro ? "Crear cuenta" : "Entrar a Milo";
-    subtituloCuenta.textContent = modoRegistro ? "Usá tu correo y una contraseña segura para crear tu cuenta." : "Ingresá con tu correo y tu contraseña para continuar.";
-    botonCuenta.textContent = modoRegistro ? "Crear cuenta" : "Entrar";
-    alternarCuenta.textContent = modoRegistro ? "Ya tengo una cuenta" : "¿No tenés cuenta? Crear una";
+    tituloCuenta.textContent = modoRegistro ? "Crear cuenta" : "Iniciá sesión";
+    subtituloCuenta.textContent = modoRegistro ? "Elegí un nombre de usuario y una contraseña para empezar." : "Entrá con tu nombre de usuario y contraseña.";
+    botonCuenta.textContent = modoRegistro ? "Crear cuenta" : "Iniciar sesión";
+    alternarCuenta.textContent = modoRegistro ? "¿Ya tienes cuenta? Iniciar sesión" : "¿Primera vez? Crear cuenta";
     actualizarCamposCuenta();
     errorCuenta.textContent = "";
   });
@@ -1274,13 +1352,8 @@ Reglas de contenido:
     errorCuenta.textContent = "";
     botonCuenta.disabled = true;
     try {
-      const payload = {
-        email: emailCuenta.value,
-        password: passwordCuenta.value
-      };
-      if (modoRegistro) {
-        payload.confirmPassword = passwordConfirmCuenta.value;
-      }
+      const payload = { username: usuarioCuenta.value.trim(), password: passwordCuenta.value };
+
       const respuesta = await fetch(modoRegistro ? "/api/auth/register" : "/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1292,15 +1365,15 @@ Reglas de contenido:
       actualizarCamposCuenta();
       mostrarCuenta(datos.user);
     } catch (error) {
-      errorCuenta.textContent = error.message;
+      errorCuenta.textContent = error instanceof TypeError
+        ? "No se pudo conectar con Milo. Abrí la aplicación desde su servidor, no desde el archivo HTML."
+        : error.message;
     } finally {
       botonCuenta.disabled = false;
     }
   });
 
   cerrarSesion.addEventListener("click", async () => {
-    const seguro = window.confirm("¿Seguro que querés cerrar sesión? Se bloqueará tu acceso hasta que vuelvas a entrar.");
-    if (!seguro) return;
     await fetch("/api/auth/logout", { method: "POST" });
     mostrarCuenta(null);
   });
@@ -1326,7 +1399,7 @@ Reglas de contenido:
 
     const avatar = document.createElement("div");
     avatar.className = "avatar-msg";
-    avatar.textContent = tipo === "user" ? "V" : "M";
+    avatar.textContent = tipo === "user" ? (usuarioEnSesion?.username?.[0] || usuarioEnSesion?.email?.[0] || "T").toUpperCase() : "M";
 
     const burbuja = document.createElement("div");
     burbuja.className = "msg " + tipo;
