@@ -1160,7 +1160,6 @@ Reglas de contenido:
   function dibujarPlanIA(svgTexto, solicitud) {
     const svgSeguro = limpiarSVG(svgTexto);
     ultimaImagenSvg = svgSeguro;
-    const chat = obtenerChatActual();
     const imagenURL = URL.createObjectURL(new Blob([svgSeguro], { type: "image/svg+xml;charset=utf-8" }));
     agregarAdjunto("milo-ilustracion.svg", imagenURL, "", true);
     return "Listo. Preparé la ilustración. Si querés cambiar algo, decime qué le agrego o qué ajusto.";
