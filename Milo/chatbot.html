@@ -556,6 +556,14 @@
   .acciones-edicion button { border:1px solid var(--borde); border-radius:12px; padding:8px 12px; background:#fff; color:var(--texto); cursor:pointer; }
   .acciones-edicion .guardar-edicion { background:#526c82; color:#fff; border-color:#526c82; }
   .boton-png { margin-top:10px; border:1px solid var(--borde); border-radius:14px; padding:9px 13px; background:#526c82; color:#fff; cursor:pointer; font:13px "Inter",sans-serif; }
+  html, body { max-width:100%; overflow-x:clip; }
+  #chat, .fila-msg, .msg, .adjunto-local, .bloque-codigo { min-width:0; }
+  .fila-msg { width:fit-content; max-width:min(760px,94%); }
+  .msg { max-width:100%; overflow-wrap:anywhere; }
+  .msg p, .msg li, .msg h3, .msg h4, .texto-mensaje { max-width:100%; overflow-wrap:anywhere; }
+  .bloque-codigo { width:100%; max-width:100%; }
+  .bloque-codigo pre { max-width:100%; overflow-x:auto; }
+  .adjunto-local { max-width:min(680px,94%); overflow-wrap:anywhere; }
 </style>
 </head>
 <body>
@@ -1647,6 +1655,8 @@ Reglas de contenido:
   let grabando = false;
   let textoAcumulado = "";
   let reconocedor = null;
+  let vozSesion = 0;
+  let microfonoIniciando = false;
 
   function actualizarEstadoMicrofono(escuchando) {
     grabando = escuchando;
@@ -1656,10 +1666,14 @@ Reglas de contenido:
     botonMic.setAttribute("aria-label", escuchando ? "Detener dictado" : "Dictar mensaje");
   }
 
+  // Invalida cualquier resultado que llegue tarde después de enviar el mensaje.
   function detenerMicrofono() {
-    if (!reconocedor || !grabando) return;
+    const anterior = reconocedor;
+    reconocedor = null;
+    vozSesion++;
+    textoAcumulado = "";
     actualizarEstadoMicrofono(false);
-    try { reconocedor.stop(); } catch (error) {}
+    if (anterior) { try { anterior.abort(); } catch (error) {} }
   }
 
   if (!MotorVoz) {
@@ -1667,58 +1681,70 @@ Reglas de contenido:
     botonMic.title = "El dictado no está disponible en este navegador";
     botonMic.setAttribute("aria-label", "Dictado no disponible en este navegador");
   } else {
-    reconocedor = new MotorVoz();
-    reconocedor.lang = "es-ES";
-    reconocedor.continuous = false;
-    reconocedor.interimResults = true;
-    reconocedor.maxAlternatives = 1;
-
-    reconocedor.addEventListener("result", (evento) => {
-      let interino = "";
-      for (let i = evento.resultIndex; i < evento.results.length; i++) {
-        const resultado = evento.results[i][0].transcript;
-        if (evento.results[i].isFinal) textoAcumulado += resultado + " ";
-        else interino += resultado;
-      }
-      entradaTexto.value = (textoAcumulado + interino).trim();
-    });
-
-    reconocedor.addEventListener("end", () => actualizarEstadoMicrofono(false));
-
-    reconocedor.addEventListener("error", (evento) => {
-      actualizarEstadoMicrofono(false);
-      const mensajes = {
-        "not-allowed": "Activa el permiso del micrófono para este sitio en el navegador y vuelve a probar.",
-        "service-not-allowed": "El navegador bloqueó el servicio de dictado. Revisa los permisos de micrófono.",
-        "audio-capture": "No se encontró un micrófono disponible.",
-        "network": "El dictado del navegador no pudo conectarse. Revisa la conexión a internet.",
-        "no-speech": "No detecté voz. Toca el micrófono y habla cerca del dispositivo."
-      };
-      if (mensajes[evento.error]) agregarMensaje("sistema", mensajes[evento.error]);
-      else if (evento.error !== "aborted") agregarMensaje("sistema", "El dictado se interrumpió (" + evento.error + ").");
-    });
-
     botonMic.addEventListener("click", async () => {
-      if (grabando) { detenerMicrofono(); return; }
+      if (grabando) { try { reconocedor?.stop(); } catch (error) {} return; }
+      if (microfonoIniciando) return;
       if (!window.isSecureContext && location.hostname !== "localhost") {
         agregarMensaje("sistema", "El dictado requiere una página segura HTTPS.");
         return;
       }
 
+      microfonoIniciando = true;
       try {
         if (navigator.mediaDevices?.getUserMedia) {
           const flujo = await navigator.mediaDevices.getUserMedia({ audio: true });
           flujo.getTracks().forEach(pista => pista.stop());
         }
         textoAcumulado = entradaTexto.value ? entradaTexto.value.trim() + " " : "";
+        const sesion = ++vozSesion;
+        const instancia = new MotorVoz();
+        reconocedor = instancia;
+        instancia.lang = "es-ES";
+        instancia.continuous = false;
+        instancia.interimResults = true;
+        instancia.maxAlternatives = 1;
+        instancia.addEventListener("result", (evento) => {
+          if (sesion !== vozSesion || reconocedor !== instancia) return;
+          let interino = "";
+          for (let i = evento.resultIndex; i < evento.results.length; i++) {
+            const resultado = evento.results[i][0].transcript;
+            if (evento.results[i].isFinal) textoAcumulado += resultado + " ";
+            else interino += resultado;
+          }
+          entradaTexto.value = (textoAcumulado + interino).trim();
+        });
+        instancia.addEventListener("end", () => {
+          if (sesion !== vozSesion || reconocedor !== instancia) return;
+          reconocedor = null;
+          textoAcumulado = "";
+          actualizarEstadoMicrofono(false);
+        });
+        instancia.addEventListener("error", (evento) => {
+          if (sesion !== vozSesion || reconocedor !== instancia) return;
+          reconocedor = null;
+          textoAcumulado = "";
+          actualizarEstadoMicrofono(false);
+          const mensajes = {
+            "not-allowed": "Activa el permiso del micrófono para este sitio en el navegador y vuelve a probar.",
+            "service-not-allowed": "El navegador bloqueó el servicio de dictado. Revisa los permisos de micrófono.",
+            "audio-capture": "No se encontró un micrófono disponible.",
+            "network": "El dictado del navegador no pudo conectarse. Revisa la conexión a internet.",
+            "no-speech": "No detecté voz. Toca el micrófono y habla cerca del dispositivo."
+          };
+          if (mensajes[evento.error]) agregarMensaje("sistema", mensajes[evento.error]);
+          else if (evento.error !== "aborted") agregarMensaje("sistema", "El dictado se interrumpió (" + evento.error + ").");
+        });
         actualizarEstadoMicrofono(true);
-        reconocedor.start();
+        instancia.start();
       } catch (error) {
+        reconocedor = null;
         actualizarEstadoMicrofono(false);
         const mensaje = error.name === "NotAllowedError"
           ? "Activa el permiso del micrófono en el navegador para poder dictar."
           : "No pude iniciar el micrófono. Revisa que esté conectado y que el navegador tenga permiso.";
         agregarMensaje("sistema", mensaje);
+      } finally {
+        microfonoIniciando = false;
       }
     });
   }
