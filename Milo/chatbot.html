@@ -921,7 +921,7 @@ Reglas de contenido:
   const RE_IMAGEN_TEMA = /\b(imagen(?:es)?|foto(?:graf[ií]a|s)?|retrato(?:s)?|dibujo(?:s)?|ilustraci[oó]n(?:es)?|p[oó]ster(?:s)?|pintura(?:s)?|arte digital|avatar(?:es)?|logo(?:s)?|icono(?:s)?|escena(?:s)?|paisaje(?:s)?|portada(?:s)?|fondo(?:s)?|viñeta(?:s)?|picture|photo|photograph|drawing|illustration|artwork)\b/i;
   const RE_IMAGEN_ACCION = /\b(crea\w*|cre[eé]me|haz\w*|hace\w*|genera\w*|dibuja\w*|ilustra\w*|diseña\w*|pinta\w*|retrata\w*|imagina\w*|inventa\w*|muestra\w*|ens[eé]ñame|visualiza\w*|representa\w*|quiero|quisiera|necesito|me gustar[ií]a|puedes|pod[eé]s|podr[ií]as|me puedes|me podr[ií]as|quiero ver|me gustar[ií]a ver|puedes hacer|podr[ií]as hacer|me haces|me har[ií]as|hazme|dame|crea para m[ií])\b/i;
   const RE_ACCION_CON_OBJETO = /\b(haz\w*|hace\w*|crea\w*|cre[eé]me|genera\w*|dibuja\w*|ilustra\w*|pinta\w*|retrata\w*|imagina\w*|dame|muestra\w*|mu[eé]strame|ens[eé]ñame|quiero ver)\s+(?:(?:me|para m[ií])\s+)?(?:un|una|unos|unas|el|la|los|las|a|al)\s+([^\s,.;!?]+)/i;
-  const RE_NO_VISUAL = /\b(resumen|lista|tabla|documento|archivo|carta|correo|email|ensayo|poema|cuento|historia|plan|rutina|receta|c[oó]digo|programa|operaci[oó]n|c[aá]lculo|traducci[oó]n|pregunta|respuesta|explicaci[oó]n|informe|ejemplo|chiste|consejo|definici[oó]n|soluci[oó]n)\b/i;
+  const RE_NO_VISUAL = /\b(resumen|lista|tabla|documento|archivo|carta|correo|email|ensayo|poema|cuento|historia|plan|rutina|receta|c[oó]digo|programa|script|roblox|juego(?:s)?|daño|programaci[oó]n|programar|javascript|python|html|css|api|funci[oó]n|operaci[oó]n|c[aá]lculo|traducci[oó]n|pregunta|respuesta|explicaci[oó]n|informe|ejemplo|chiste|consejo|definici[oó]n|soluci[oó]n)\b/i;
   const RE_EDICION_IMAGEN = /\b(pon(le|la|lo|les|los)?|agr[eé]ga(le|la|lo)?|añade(le|la|lo)?|qu[ií]ta(le|la|lo)?|cambia(le|la|lo)?|modifica|edita|ajusta|transforma|ahora (con|sin|pon|agr[eé]ga|haz)|haz(lo|la) (con|sin)|c[oó]rtale|v[ií]ste(le|la)|c[aá]mbiale)\b/i;
   let ultimaSolicitudImagen = "";
   let ultimaImagenSvg = "";
@@ -932,7 +932,8 @@ Reglas de contenido:
     if (fraseDeImagen.test(mensaje)) return true;
     if (RE_IMAGEN_ACCION.test(mensaje) && RE_IMAGEN_TEMA.test(mensaje)) return true;
     if (RE_ACCION_CON_OBJETO.test(mensaje) && !RE_NO_VISUAL.test(mensaje)) return true;
-    if (/\b(c[oó]mo se ver[ií]a|ens[eé]ñame|mu[eé]strame|visualiza)\b/i.test(mensaje) && mensaje.split(/\s+/).length > 3) return true;
+    if (/\b(c[oó]mo se ver[ií]a|ens[eé]ñame|mu[eé]strame|visualiza)\b/i.test(mensaje) && !RE_NO_VISUAL.test(mensaje) && mensaje.split(/\s+/).length > 3) return true;
+    if (RE_NO_VISUAL.test(mensaje)) return false;
     return Boolean(ultimaImagenSvg && (RE_EDICION_IMAGEN.test(mensaje) || /^\s*(ahora|mejor|otra versi[oó]n|igual pero|con m[aá]s|con menos|m[aá]s|menos|hazlo|hazla|que tenga)\b/i.test(mensaje)));
   }
 
